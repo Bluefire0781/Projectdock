@@ -3,4 +3,10 @@ name = "seaorm"
 version = "0.1.0"
 edition = "2024"
 
+[workspace]
+members = [".", "migration"]
+
 [dependencies]
+migration = { path = "migration" }
+sea-orm = { version = "2.0.0-rc.34", features = [ "sqlx-postgres", "macros" ] }
+tokio = { version = "1.49.0", features = ["full"] }

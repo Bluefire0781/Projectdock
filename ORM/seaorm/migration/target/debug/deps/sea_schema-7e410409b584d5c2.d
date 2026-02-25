@@ -1,0 +1,11 @@
+/home/blue/Documents/Projectdock/ORM/seaorm/migration/target/debug/deps/sea_schema-7e410409b584d5c2.d: /home/blue/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sea-schema-0.16.2/src/lib.rs /home/blue/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sea-schema-0.16.2/src/parser.rs /home/blue/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sea-schema-0.16.2/src/sqlx_types/mod.rs /home/blue/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sea-schema-0.16.2/src/sqlx_types/mock.rs /home/blue/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sea-schema-0.16.2/src/util.rs /home/blue/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sea-schema-0.16.2/src/name.rs /home/blue/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sea-schema-0.16.2/src/probe.rs
+
+/home/blue/Documents/Projectdock/ORM/seaorm/migration/target/debug/deps/libsea_schema-7e410409b584d5c2.rmeta: /home/blue/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sea-schema-0.16.2/src/lib.rs /home/blue/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sea-schema-0.16.2/src/parser.rs /home/blue/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sea-schema-0.16.2/src/sqlx_types/mod.rs /home/blue/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sea-schema-0.16.2/src/sqlx_types/mock.rs /home/blue/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sea-schema-0.16.2/src/util.rs /home/blue/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sea-schema-0.16.2/src/name.rs /home/blue/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sea-schema-0.16.2/src/probe.rs
+
+/home/blue/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sea-schema-0.16.2/src/lib.rs:
+/home/blue/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sea-schema-0.16.2/src/parser.rs:
+/home/blue/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sea-schema-0.16.2/src/sqlx_types/mod.rs:
+/home/blue/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sea-schema-0.16.2/src/sqlx_types/mock.rs:
+/home/blue/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sea-schema-0.16.2/src/util.rs:
+/home/blue/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sea-schema-0.16.2/src/name.rs:
+/home/blue/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sea-schema-0.16.2/src/probe.rs:
