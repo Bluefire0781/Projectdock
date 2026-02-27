@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "dgSpecHash": "vAxpoTKZ+BA=",
+  "success": true,
+  "projectFilePath": "/home/blue/Documents/Projectdock/Performance/benchmark_c#/benchmark_c#.csproj",
+  "expectedPackageFiles": [
+    "/home/blue/.nuget/packages/microsoft.aspnetcore.app.ref/10.0.3/microsoft.aspnetcore.app.ref.10.0.3.nupkg.sha512"
+  ],
+  "logs": []
+}

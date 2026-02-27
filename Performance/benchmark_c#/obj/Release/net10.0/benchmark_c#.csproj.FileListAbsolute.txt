@@ -1,0 +1,15 @@
+/home/blue/Documents/Projectdock/Performance/benchmark_c#/bin/Release/net10.0/benchmark_c#
+/home/blue/Documents/Projectdock/Performance/benchmark_c#/bin/Release/net10.0/benchmark_c#.deps.json
+/home/blue/Documents/Projectdock/Performance/benchmark_c#/bin/Release/net10.0/benchmark_c#.runtimeconfig.json
+/home/blue/Documents/Projectdock/Performance/benchmark_c#/bin/Release/net10.0/benchmark_c#.dll
+/home/blue/Documents/Projectdock/Performance/benchmark_c#/bin/Release/net10.0/benchmark_c#.pdb
+/home/blue/Documents/Projectdock/Performance/benchmark_c#/obj/Release/net10.0/benchmark_c#.GeneratedMSBuildEditorConfig.editorconfig
+/home/blue/Documents/Projectdock/Performance/benchmark_c#/obj/Release/net10.0/benchmark_c#.AssemblyInfoInputs.cache
+/home/blue/Documents/Projectdock/Performance/benchmark_c#/obj/Release/net10.0/benchmark_c#.AssemblyInfo.cs
+/home/blue/Documents/Projectdock/Performance/benchmark_c#/obj/Release/net10.0/benchmark_c#.csproj.CoreCompileInputs.cache
+/home/blue/Documents/Projectdock/Performance/benchmark_c#/obj/Release/net10.0/benchmark_c#.sourcelink.json
+/home/blue/Documents/Projectdock/Performance/benchmark_c#/obj/Release/net10.0/benchmark_c#.dll
+/home/blue/Documents/Projectdock/Performance/benchmark_c#/obj/Release/net10.0/refint/benchmark_c#.dll
+/home/blue/Documents/Projectdock/Performance/benchmark_c#/obj/Release/net10.0/benchmark_c#.pdb
+/home/blue/Documents/Projectdock/Performance/benchmark_c#/obj/Release/net10.0/benchmark_c#.genruntimeconfig.cache
+/home/blue/Documents/Projectdock/Performance/benchmark_c#/obj/Release/net10.0/ref/benchmark_c#.dll
