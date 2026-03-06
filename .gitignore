@@ -1,0 +1,13 @@
+**/target/
+
+**/Cargo.lock
+
+**/*.rs.bk
+**/*.rmeta
+**/*.d
+**/*.rlib
+**/*.dll
+**/*.exe
+
+
+
