@@ -3,7 +3,7 @@
 A workspace for experimenting with a small “dock” stack (API + web UI) and Rust ORM tooling. This repository currently contains:
 
 - **Dock/**
-  - `Dock/api/` — a Rust API that can be built and run via Docker
+  - `Dock/api/` — a Rust API that can be built and run
   - `Dock/frontend/` — a Next.js frontend
 - **ORM/**
   - `ORM/diesel_demo/` — Diesel + Postgres example project
@@ -39,8 +39,7 @@ A workspace for experimenting with a small “dock” stack (API + web UI) and R
 From `Dock/frontend`:
 
 ```bash
-npm install
-npm run dev
+Docker compose up - build
 ```
 
 Then open:
@@ -58,8 +57,7 @@ There is a multi-stage Docker build for the Rust API at `Dock/api/Dockerfile` th
 From `Dock/api`:
 
 ```bash
-docker build -t projectdock-api .
-docker run --rm -p 8080:8080 projectdock-api
+Docker compose up - build
 ```
 
 If the API provides HTTP endpoints, they’ll be available at:
@@ -68,48 +66,12 @@ If the API provides HTTP endpoints, they’ll be available at:
 
 ---
 
-## ORM demos (Rust + Postgres)
-
-### SeaORM demo
-
-The SeaORM demo connects to Postgres with a hard-coded connection string in `ORM/seaorm/src/main.rs`:
-
-```text
-postgres://db_user:db_pw@localhost:5432/db1
-```
-
-To run it locally you’ll need a Postgres instance with matching credentials and database name (or update the connection string).
-
----
-
-### Diesel demo
-
-The Diesel demo expects a `DATABASE_URL` environment variable (loaded via dotenv). Typical usage:
-
-```bash
-cd ORM/diesel_demo
-cp .env.example .env   # if you add one, or create .env manually
-# set DATABASE_URL=postgres://...
-cargo run
-```
-
----
-
 ## Tech stack
 
-- **Rust** (API + ORM demos)
-- **Docker** (containerizing the Rust API)
+- **Docker** (containerizing the whole application)
+- **Rust** (API + Seaorm)
 - **Next.js** (frontend)
-- **PostgreSQL** (used by the ORM demos)
+- **PostgreSQL**
 
 ---
 
-## Contributing
-
-Issues and PRs are welcome. If you’re making larger changes, consider opening an issue first to discuss direction.
-
----
-
-## License
-
-Add a license you prefer (MIT/Apache-2.0/etc.). If you don’t plan to license it yet, you can remove this section for now.
