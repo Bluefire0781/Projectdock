@@ -50,9 +50,9 @@ Then open:
 
 ---
 
-### API (Rust) via Docker
+### API (Rust)
 
-There is a multi-stage Docker build for the Rust API at `Dock/api/Dockerfile` that produces a small runtime image and exposes port **8080**.
+Docker that runs the api 
 
 From `Dock/api`:
 
