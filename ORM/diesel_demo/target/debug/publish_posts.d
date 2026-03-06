@@ -1,0 +1,1 @@
+/home/blue/Documents/Projectdock/ORM/diesel_demo/target/debug/publish_posts: /home/blue/Documents/Projectdock/ORM/diesel_demo/src/bin/publish_posts.rs /home/blue/Documents/Projectdock/ORM/diesel_demo/src/lib.rs /home/blue/Documents/Projectdock/ORM/diesel_demo/src/models.rs /home/blue/Documents/Projectdock/ORM/diesel_demo/src/schema.rs
