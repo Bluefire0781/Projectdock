@@ -1,0 +1,83 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "Dock/**"
+  pull_request:
+    branches: [main]
+    paths:
+      - "Dock/**"
+
+jobs:
+  # ─── Rust API ────────────────────────────────────────────────
+  api-ci:
+    name: Rust API — Build & Test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Dock/api
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain (stable)
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - name: Cache Cargo registry & build artifacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            Dock/api/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('Dock/api/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Clippy (deny warnings)
+        run: cargo clippy --all-targets --all-features -- -D warnings
+
+      - name: Build (release)
+        run: cargo build --release
+
+      - name: Run tests
+        run: cargo test --release
+
+  # ─── Next.js Frontend ────────────────────────────────────────
+  frontend-ci:
+    name: Next.js Frontend — Lint & Build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Dock/frontend
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: Dock/frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Type-check
+        run: npx tsc --noEmit
+
+      - name: Build
+        run: npm run build
