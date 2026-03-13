@@ -8,7 +8,7 @@ mod service;
 async fn main() {
     tracing_subscriber::fmt::init();
 
-    let app = crate::api::router();
+    let app = api::router();
 
     let port: u16 = std::env::var("PORT")
         .unwrap_or_else(|_| "8080".to_string())
