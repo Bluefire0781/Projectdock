@@ -1,6 +1,6 @@
 use axum::Router;
 
-pub mod users;
+pub mod leveranciers;
 
 pub fn router() -> Router {
     Router::new()
