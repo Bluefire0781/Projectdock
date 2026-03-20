@@ -1,15 +1,20 @@
-use axum::Router;
+use crate::state::AppState;
+use axum::{Router, routing::get, routing::post};
 
+pub mod leverancier_api;
 pub mod users;
 
-pub fn router() -> Router {
+pub fn router() -> Router<AppState> {
     Router::new()
-        .route("/", axum::routing::get(root))
-        .route("/users", axum::routing::post(users::create_user))
-        .route("/add", axum::routing::get(add))
+        .route("/", get(root))
+        .route("/users", post(users::create_user))
+        .route("/add", get(add))
+        .route(
+            "/create_leverancier",
+            post(leverancier_api::create_leverancier),
+        )
 }
 
-// basic handler that responds with a static string
 async fn root() -> &'static str {
     "Hello, World!"
 }

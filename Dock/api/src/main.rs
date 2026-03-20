@@ -1,14 +1,23 @@
 use std::net::SocketAddr;
 
 mod api;
+mod db;
 mod models;
 mod service;
+mod state;
 
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt::init();
 
-    let app = api::router();
+    // Connect to database at startup
+    let db = db::connect().await.expect("Failed to connect to database");
+
+    //db state
+    let app_state = state::AppState { db };
+
+    // Create router with state
+    let app = api::router().with_state(app_state);
 
     let port: u16 = std::env::var("PORT")
         .unwrap_or_else(|_| "8080".to_string())
