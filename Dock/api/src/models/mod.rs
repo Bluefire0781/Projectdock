@@ -2,6 +2,7 @@ pub mod afspraak;
 pub mod dock;
 pub mod leverancier;
 pub mod rit;
+pub mod toegestane_dock;
 pub mod user;
 
 //pub use afspraak::*;
@@ -9,3 +10,4 @@ pub mod user;
 pub use leverancier::*;
 //pub use rit::*;
 pub use user::*;
+//pub use toegestane_dock::*;

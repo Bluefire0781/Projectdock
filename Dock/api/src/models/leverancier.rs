@@ -22,6 +22,8 @@ pub struct Model {
     pub ppu: u16,
     #[sea_orm(has_many)]
     pub rit: HasMany<super::rit::Entity>,
+    #[sea_orm(has_many, via = "toegestane_dock")]
+    pub dock: HasMany<super::dock::Entity>,
 }
 
 impl ActiveModelBehavior for ActiveModel {}

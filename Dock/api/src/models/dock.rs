@@ -16,6 +16,8 @@ pub struct Model {
     pub open: bool,
     #[sea_orm(has_many)]
     pub afspraak: HasMany<super::afspraak::Entity>,
+    #[sea_orm(has_many, via = "toegestane_dock")]
+    pub leverancier: HasMany<super::leverancier::Entity>,
 }
 
 impl ActiveModelBehavior for ActiveModel {}
