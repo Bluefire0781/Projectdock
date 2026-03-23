@@ -20,6 +20,7 @@ pub struct Model {
     pub password: String,
     pub email: String,
     pub ppu: u16,
+    pub role: String,
     #[sea_orm(has_many)]
     pub rit: HasMany<super::rit::Entity>,
     #[sea_orm(has_many, via = "toegestane_dock")]
