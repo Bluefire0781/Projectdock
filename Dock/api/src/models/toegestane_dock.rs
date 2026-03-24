@@ -1,5 +1,5 @@
 use sea_orm::entity::prelude::*;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 
 #[sea_orm::model]
 #[derive(Serialize, Debug, Clone, PartialEq, Eq, DeriveEntityModel, Default)]
