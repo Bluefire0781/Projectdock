@@ -6,9 +6,9 @@ use serde::Serialize;
 #[sea_orm(table_name = "toegestane_dock")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
-    pub dock_nmr: u64,
+    pub dock_nmr: i16,
     #[sea_orm(primary_key, auto_increment = false)]
-    pub leverancier_nmr: u64,
+    pub leverancier_nmr: i64,
     #[sea_orm(belongs_to, from = "dock_nmr", to = "dock_id")]
     pub dock: Option<super::dock::Entity>,
     #[sea_orm(belongs_to, from = "leverancier_nmr", to = "leverancier_id")]

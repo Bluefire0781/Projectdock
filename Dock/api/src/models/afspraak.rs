@@ -1,23 +1,14 @@
 use sea_orm::entity::prelude::*;
-use serde::{Deserialize, Serialize};
-
-#[derive(Deserialize)]
-pub struct CreateAfspraak {
-    pub rit_nmr: u64,
-    pub dock_nmr: u64,
-    pub starttijd: String,
-    pub eindtijd: String,
-    pub landing_type: String,
-}
+use serde::Serialize;
 
 #[sea_orm::model]
 #[derive(Serialize, Debug, Clone, PartialEq, Eq, DeriveEntityModel, Default)]
 #[sea_orm(table_name = "afspraak")]
 pub struct Model {
     #[sea_orm(primary_key)]
-    pub afspraak_id: u64, //pk
-    pub rit_nmr: u64,  //fk
-    pub dock_nmr: u16, //fk
+    pub afspraak_id: i64, //pk
+    pub rit_nmr: i64,  //fk
+    pub dock_nmr: i16, //fk
     pub starttijd: String,
     pub eindtijd: String,
     pub landing_type: String,

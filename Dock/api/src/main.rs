@@ -1,3 +1,4 @@
+use migration::MigratorTrait;
 use std::net::SocketAddr;
 
 mod api;
@@ -12,6 +13,8 @@ async fn main() {
 
     // Connect to database at startup
     let db = db::connect().await.expect("Failed to connect to database");
+
+    let _ = migration::Migrator::up(&db, None).await;
 
     //db state
     let app_state = state::AppState { db };
