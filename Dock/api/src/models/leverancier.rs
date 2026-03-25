@@ -3,11 +3,19 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize)]
 pub struct CreateLeverancier {
-    pub leverancier_nmr: u64,
+    pub leverancier_nmr: i64,
     pub username: String,
     pub password: String,
     pub email: String,
-    pub ppu: u16,
+    pub ppu: i16,
+}
+
+#[derive(Serialize)]
+pub struct LeverancierResponse {
+    pub leverancier_id: i64,
+    pub username: String,
+    pub email: String,
+    pub ppu: i16,
 }
 
 #[sea_orm::model]
@@ -15,11 +23,11 @@ pub struct CreateLeverancier {
 #[sea_orm(table_name = "leverancier")]
 pub struct Model {
     #[sea_orm(primary_key)]
-    pub leverancier_id: u64,
+    pub leverancier_id: i64,
     pub username: String,
     pub password: String,
     pub email: String,
-    pub ppu: u16,
+    pub ppu: i16,
     #[sea_orm(has_many)]
     pub rit: HasMany<super::rit::Entity>,
     #[sea_orm(has_many, via = "toegestane_dock")]

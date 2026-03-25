@@ -3,7 +3,7 @@ use argon2::{
     Argon2,
     password_hash::{PasswordHasher, SaltString, rand_core::OsRng},
 };
-use sea_orm::{ActiveModelTrait, DatabaseConnection, Set};
+use sea_orm::{ActiveModelTrait, DatabaseConnection, EntityTrait, Set};
 
 // Helper function to hash password
 fn hash_password(password: &str) -> Result<String, argon2::password_hash::Error> {
@@ -17,11 +17,11 @@ fn hash_password(password: &str) -> Result<String, argon2::password_hash::Error>
 
 pub async fn create_leverancier(
     db: &DatabaseConnection, // Accept connection as parameter
-    leverancier_nmr: u64,
+    leverancier_nmr: i64,
     username: String,
     password: String,
     email: String,
-    ppu: u16,
+    ppu: i16,
 ) -> Result<leverancier::Model, sea_orm::DbErr> {
     let hashed_password =
         hash_password(&password).map_err(|e| sea_orm::DbErr::Custom(e.to_string()))?;
@@ -36,4 +36,10 @@ pub async fn create_leverancier(
     };
 
     new_leverancier.insert(db).await // Use the passed connection
+}
+
+pub async fn find_all(db: &DatabaseConnection) -> Result<Vec<leverancier::Model>, sea_orm::DbErr> {
+    let leveranciers = leverancier::Entity::find().all(db).await?;
+
+    Ok(leveranciers)
 }

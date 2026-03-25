@@ -13,6 +13,7 @@ pub fn router() -> Router<AppState> {
             "/create_leverancier",
             post(leverancier_api::create_leverancier),
         )
+        .route("/find_leveranciers", get(leverancier_api::find_all))
 }
 
 async fn root() -> &'static str {
