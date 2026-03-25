@@ -14,7 +14,7 @@ impl MigrationTrait for Migration {
                     .col(big_unsigned("leverancier_id").not_null().primary_key())
                     .col(string("username").not_null())
                     .col(string("password").not_null())
-                    .col(string("email"))
+                    .col(string("email").null())
                     .col(unsigned("ppu").not_null())
                     .col(string("role").not_null().default("user"))
                     .to_owned(),

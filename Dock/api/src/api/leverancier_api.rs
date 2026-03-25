@@ -12,8 +12,9 @@ pub async fn create_leverancier(
         payload.leverancier_nmr,
         payload.username,
         payload.password,
-        payload.email,
+        Some(payload.email),
         payload.ppu,
+        Some(payload.role),
     )
     .await
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;

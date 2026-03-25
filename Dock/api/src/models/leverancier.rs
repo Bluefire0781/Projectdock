@@ -6,8 +6,11 @@ pub struct CreateLeverancier {
     pub leverancier_nmr: u64,
     pub username: String,
     pub password: String,
+    #[serde(default)]
     pub email: String,
     pub ppu: u16,
+    #[serde(default)]
+    pub role: String,
 }
 
 #[sea_orm::model]
@@ -18,9 +21,9 @@ pub struct Model {
     pub leverancier_id: u64,
     pub username: String,
     pub password: String,
-    pub email: String,
+    pub email: Option<String>,
     pub ppu: u16,
-    pub role: String,
+    pub role: Option<String>,
     #[sea_orm(has_many)]
     pub rit: HasMany<super::rit::Entity>,
     #[sea_orm(has_many, via = "toegestane_dock")]
