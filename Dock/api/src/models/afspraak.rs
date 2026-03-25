@@ -7,7 +7,7 @@ pub struct CreateAfspraak {
     pub dock_nmr: u64,
     pub starttijd: String,
     pub eindtijd: String,
-    pub landing_type: String,
+    pub lading_type: String,
 }
 
 #[sea_orm::model]
@@ -20,7 +20,7 @@ pub struct Model {
     pub dock_nmr: u16, //fk
     pub starttijd: String,
     pub eindtijd: String,
-    pub landing_type: String,
+    pub laning_type: String,
     #[sea_orm(belongs_to, from = "rit_nmr", to = "rit_id")]
     pub rit: HasOne<super::rit::Entity>,
     #[sea_orm(belongs_to, from = "dock_nmr", to = "dock_id")]
