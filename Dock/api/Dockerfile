@@ -3,15 +3,9 @@ FROM rust:latest AS builder
 
 WORKDIR /app
 
-# Copy Cargo files first for caching
+# Copy entire workspace structure (including migration/)
 COPY Cargo.toml Cargo.lock ./
-
-# Dummy src to cache dependencies
-RUN mkdir src && echo "fn main() {}" > src/main.rs
-RUN cargo build --release
-RUN rm -rf src
-
-# Copy real source
+COPY migration ./migration
 COPY src ./src
 
 # Build final binary
@@ -21,6 +15,12 @@ RUN cargo build --release
 FROM debian:bookworm-slim
 
 WORKDIR /app
+
+# Install required runtime dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libssl3 \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 
 # Copy the binary from the builder stage
 COPY --from=builder /app/target/release/api ./api
