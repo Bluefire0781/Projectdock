@@ -20,8 +20,9 @@ pub async fn create_leverancier(
     leverancier_nmr: i64,
     username: String,
     password: String,
-    email: String,
-    ppu: i16,
+    email: Option<String>,
+    ppu: i64,
+    role: Option<String>,
 ) -> Result<leverancier::Model, sea_orm::DbErr> {
     let hashed_password =
         hash_password(&password).map_err(|e| sea_orm::DbErr::Custom(e.to_string()))?;
@@ -32,6 +33,7 @@ pub async fn create_leverancier(
         password: Set(hashed_password),
         email: Set(email),
         ppu: Set(ppu),
+        role: Set(role),
         ..Default::default()
     };
 

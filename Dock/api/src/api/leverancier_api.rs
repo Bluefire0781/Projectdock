@@ -7,6 +7,7 @@ pub async fn create_leverancier(
     State(state): State<AppState>,
     Json(payload): Json<CreateLeverancier>,
 ) -> Result<(StatusCode, Json<LeverancierResponse>), StatusCode> {
+    let role = payload.role.unwrap_or_else(|| "user".to_string());
     let leverancier = leverancier_service::create_leverancier(
         &state.db,
         payload.leverancier_nmr,
@@ -14,6 +15,7 @@ pub async fn create_leverancier(
         payload.password,
         payload.email,
         payload.ppu,
+        Some(role),
     )
     .await
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -23,6 +25,7 @@ pub async fn create_leverancier(
         username: leverancier.username,
         email: leverancier.email,
         ppu: leverancier.ppu,
+        role: leverancier.role,
     };
 
     Ok((StatusCode::CREATED, Json(response)))
@@ -45,6 +48,7 @@ pub async fn find_all(
             username: l.username,
             email: l.email,
             ppu: l.ppu,
+            role: l.role,
         })
         .collect();
 

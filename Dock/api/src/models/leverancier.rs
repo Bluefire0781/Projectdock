@@ -6,16 +6,18 @@ pub struct CreateLeverancier {
     pub leverancier_nmr: i64,
     pub username: String,
     pub password: String,
-    pub email: String,
-    pub ppu: i16,
+    pub email: Option<String>,
+    pub ppu: i64,
+    pub role: Option<String>,
 }
 
 #[derive(Serialize)]
 pub struct LeverancierResponse {
     pub leverancier_id: i64,
     pub username: String,
-    pub email: String,
-    pub ppu: i16,
+    pub email: Option<String>,
+    pub ppu: i64,
+    pub role: Option<String>,
 }
 
 #[sea_orm::model]
@@ -26,8 +28,9 @@ pub struct Model {
     pub leverancier_id: i64,
     pub username: String,
     pub password: String,
-    pub email: String,
-    pub ppu: i16,
+    pub email: Option<String>,
+    pub ppu: i64,
+    pub role: Option<String>,
     #[sea_orm(has_many)]
     pub rit: HasMany<super::rit::Entity>,
     #[sea_orm(has_many, via = "toegestane_dock")]

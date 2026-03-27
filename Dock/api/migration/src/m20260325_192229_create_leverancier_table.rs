@@ -15,7 +15,7 @@ impl MigrationTrait for Migration {
                     .col(string("username").not_null())
                     .col(string("password").not_null())
                     .col(string("email").null())
-                    .col(tiny_integer("ppu").not_null())
+                    .col(big_integer("ppu").not_null())
                     .col(string("role").not_null().default("user"))
                     .to_owned(),
             )
