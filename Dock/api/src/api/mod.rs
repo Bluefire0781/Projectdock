@@ -1,19 +1,23 @@
 use crate::state::AppState;
 use axum::{Router, routing::get, routing::post};
+use tower_http::cors::{Any, CorsLayer};
 
 pub mod leverancier_api;
 pub mod users;
 
 pub fn router() -> Router<AppState> {
+    let cors = CorsLayer::new()
+        .allow_origin(Any) // allow localhost:3000
+        .allow_methods(Any)
+        .allow_headers(Any);
+
     Router::new()
         .route("/", get(root))
         .route("/users", post(users::create_user))
         .route("/add", get(add))
-        .route(
-            "/create_leverancier",
-            post(leverancier_api::create_leverancier),
-        )
-        .route("/find_leveranciers", get(leverancier_api::find_all))
+        .route("/leveranciers", post(leverancier_api::create_leverancier))
+        .route("/leveranciers", get(leverancier_api::find_all))
+        .layer(cors)
 }
 
 async fn root() -> &'static str {
