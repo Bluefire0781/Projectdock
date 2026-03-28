@@ -11,7 +11,7 @@ pub struct Model {
     pub leverancier_nmr: i64,
     #[sea_orm(belongs_to, from = "dock_nmr", to = "dock_id")]
     pub dock: Option<super::dock::Entity>,
-    #[sea_orm(belongs_to, from = "leverancier_nmr", to = "leverancier_id")]
+    #[sea_orm(belongs_to, from = "leverancier_nmr", to = "id")]
     pub leverancier: Option<super::leverancier::Entity>,
 }
 

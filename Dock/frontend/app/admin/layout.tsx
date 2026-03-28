@@ -27,7 +27,33 @@ export default function RootLayout({
             <body
                 className={`${geistSans.variable} ${geistMono.variable} antialiased`}
             >
-                {children}
+                <div className="min-h-screen flex flex-col bg-white">
+                    <header className="bg-[#013c59] h-[12vh] w-full">
+                        <div className="px-4 sm:px-6 lg:px-8 flex items-center justify-between h-full">
+                            <div className="text-[#b5b500] font-extrabold leading-tight">
+                                <div className="text-3xl tracking-wide">BSB</div>
+                                <div className="text-3xl tracking-wide px-7">DockIT</div>
+                            </div>
+
+                            <div className="flex items-center gap-8">
+                                <nav className="text-white font-medium flex gap-8">
+                                    <a href="/admin/leverancier" className="hover:text-[#b5b500] transition">Leverancier</a>
+                                    <a href="#" className="hover:text-[#b5b500] transition">Dock</a>
+                                    <a href="#" className="hover:text-[#b5b500] transition">Orders</a>
+                                    <a href="#" className="hover:text-[#b5b500] transition">Kalender</a>
+                                    <a href="#" className="hover:text-[#b5b500] transition">News</a>
+                                    <a href="/admin" className="hover:text-[#b5b500] transition">Dashboard</a>
+                                </nav>
+
+                                <button className="bg-[#b5b500] text-[#013c59] font-semibold px-4 py-2 rounded-md hover:opacity-90 transition">
+                                    Log Out
+                                </button>
+                            </div>
+                        </div>
+                    </header>
+
+                    {children}
+                </div>
             </body>
         </html>
     );

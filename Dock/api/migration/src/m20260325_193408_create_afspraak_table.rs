@@ -21,7 +21,7 @@ impl MigrationTrait for Migration {
                         ForeignKey::create()
                             .name("fk_afspraak_rit")
                             .from("afspraak", "rit_nmr")
-                            .to("rit", "rit_id")
+                            .to("rit", "id")
                             .on_delete(ForeignKeyAction::Cascade),
                     )
                     .foreign_key(

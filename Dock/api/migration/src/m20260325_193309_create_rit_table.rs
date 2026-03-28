@@ -11,7 +11,8 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table("rit")
                     .if_not_exists()
-                    .col(big_integer("rit_id").not_null().primary_key())
+                    .col(pk_auto("id"))
+                    .col(string("rit_id").not_null().unique_key())
                     .col(big_integer("leverancier_id").not_null())
                     .col(tiny_integer("pellet_tot").not_null())
                     .col(string("datum").not_null())
@@ -19,7 +20,7 @@ impl MigrationTrait for Migration {
                         ForeignKey::create()
                             .name("fk_rit_leverancier")
                             .from("rit", "leverancier_id")
-                            .to("leverancier", "leverancier_id")
+                            .to("leverancier", "id")
                             .on_delete(ForeignKeyAction::Cascade),
                     )
                     .to_owned(),

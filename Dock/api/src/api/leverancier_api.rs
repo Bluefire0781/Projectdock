@@ -1,7 +1,11 @@
 use crate::models::{CreateLeverancier, LeverancierResponse};
 use crate::service::leverancier_service;
 use crate::state::AppState;
-use axum::{Json, extract::State, http::StatusCode};
+use axum::{
+    Json,
+    extract::{Path, State},
+    http::StatusCode,
+};
 
 pub async fn create_leverancier(
     State(state): State<AppState>,
@@ -10,7 +14,9 @@ pub async fn create_leverancier(
     let role = payload.role.unwrap_or_else(|| "user".to_string());
     let leverancier = leverancier_service::create_leverancier(
         &state.db,
-        payload.leverancier_nmr,
+        payload.leverancier_id,
+        payload.leverancier_naam,
+        payload.transporteur,
         payload.username,
         payload.password,
         payload.email,
@@ -22,6 +28,8 @@ pub async fn create_leverancier(
 
     let response = LeverancierResponse {
         leverancier_id: leverancier.leverancier_id,
+        leverancier_naam: leverancier.leverancier_naam,
+        transporteur: leverancier.transporteur,
         username: leverancier.username,
         email: leverancier.email,
         ppu: leverancier.ppu,
@@ -45,6 +53,8 @@ pub async fn find_all(
         .into_iter()
         .map(|l| LeverancierResponse {
             leverancier_id: l.leverancier_id,
+            leverancier_naam: l.leverancier_naam,
+            transporteur: l.transporteur,
             username: l.username,
             email: l.email,
             ppu: l.ppu,
@@ -53,4 +63,54 @@ pub async fn find_all(
         .collect();
 
     Ok((StatusCode::OK, Json(response)))
+}
+
+pub async fn find_leverancier(
+    State(state): State<AppState>,
+    Path(leverancier_id): Path<String>,
+) -> Result<Json<LeverancierResponse>, StatusCode> {
+    let leverancier = leverancier_service::find_by_one(&state.db, &leverancier_id)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+        .ok_or(StatusCode::NOT_FOUND)?;
+
+    Ok(Json(LeverancierResponse {
+        leverancier_id: leverancier.leverancier_id,
+        leverancier_naam: leverancier.leverancier_naam,
+        transporteur: leverancier.transporteur,
+        username: leverancier.username,
+        email: leverancier.email,
+        ppu: leverancier.ppu,
+        role: leverancier.role,
+    }))
+}
+
+pub async fn delete_leverancier(
+    State(state): State<AppState>,
+    Path(leverancier_id): Path<String>,
+) -> Result<(StatusCode, Json<LeverancierResponse>), StatusCode> {
+    // First, fetch the leverancier before deleting (so we can return it)
+    let leverancier = leverancier_service::find_by_one(&state.db, &leverancier_id)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+        .ok_or(StatusCode::NOT_FOUND)?;
+
+    // Then delete it
+    leverancier_service::delete_leverancier(&state.db, leverancier_id)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    // Return the deleted leverancier as response
+    Ok((
+        StatusCode::OK,
+        Json(LeverancierResponse {
+            leverancier_id: leverancier.leverancier_id,
+            leverancier_naam: leverancier.leverancier_naam,
+            transporteur: leverancier.transporteur,
+            username: leverancier.username,
+            email: leverancier.email,
+            ppu: leverancier.ppu,
+            role: leverancier.role,
+        }),
+    ))
 }

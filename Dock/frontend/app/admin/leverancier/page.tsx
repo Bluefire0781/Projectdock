@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 
 type Leverancier = {
     leverancier_id: string;
+    leverancier_naam: string | null;
+    transporteur: string | null;
     username: string;
     email: string | null;
     ppu: number;
@@ -12,6 +14,8 @@ type Leverancier = {
 
 type CreateLeverancierPayload = {
     leverancier_id: string;
+    leverancier_naam: string | null;
+    transporteur: string | null;
     username: string;
     password: string;
     email: string | null;
@@ -20,6 +24,8 @@ type CreateLeverancierPayload = {
 };
 
 type PatchLeverancierPayload = {
+    leverancier_naam?: string | null;
+    transporteur?: string | null;
     email?: string | null;
     ppu?: number;
 };
@@ -40,6 +46,8 @@ export default function Home() {
 
     const [form, setForm] = useState({
         leverancier_id: "",
+        leverancier_naam: "",
+        transporteur: "",
         username: "",
         password: "",
         email: "",
@@ -49,6 +57,8 @@ export default function Home() {
     const [selectedAccount, setSelectedAccount] = useState<Leverancier | null>(null);
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [editForm, setEditForm] = useState({
+        leverancier_naam: "",
+        transporteur: "",
         email: "",
         ppu: "",
     });
@@ -58,6 +68,16 @@ export default function Home() {
 
     const inputClass =
         "w-full border border-slate-300 rounded-md px-3 py-2 text-gray-700 placeholder:text-gray-400 focus:text-black focus:border-black focus:outline-none focus:ring-2 focus:ring-[#013c59]/30";
+
+    const fieldRefs = {
+        leverancier_id: useRef<HTMLInputElement>(null),
+        leverancier_naam: useRef<HTMLInputElement>(null),
+        transporteur: useRef<HTMLInputElement>(null),
+        username: useRef<HTMLInputElement>(null),
+        password: useRef<HTMLInputElement>(null),
+        email: useRef<HTMLInputElement>(null),
+        ppu: useRef<HTMLInputElement>(null),
+    };
 
     async function fetchAccounts() {
         setLoading(true);
@@ -94,8 +114,8 @@ export default function Home() {
 
         const queryLower = query.toLowerCase();
         const filtered = allAccounts.filter((account) =>
-            account.leverancier_id.toLowerCase().startsWith(queryLower) ||
-            account.username.toLowerCase().startsWith(queryLower)
+            account.leverancier_id.toLowerCase().includes(queryLower) ||
+            account.leverancier_naam?.toLowerCase().includes(queryLower)
         );
         setAccounts(filtered);
     }
@@ -110,17 +130,22 @@ export default function Home() {
         setSuccessMsg(null);
         setForm({
             leverancier_id: "",
+            leverancier_naam: "",
+            transporteur: "",
             username: "",
             password: "",
             email: "",
             ppu: "",
         });
+        setTimeout(() => fieldRefs.leverancier_id.current?.focus(), 0);
     }
 
     function closeCreateModal() {
         setShowCreateModal(false);
         setForm({
             leverancier_id: "",
+            leverancier_naam: "",
+            transporteur: "",
             username: "",
             password: "",
             email: "",
@@ -128,9 +153,38 @@ export default function Home() {
         });
     }
 
+    function handleCreateKeyDown(
+        e: React.KeyboardEvent<HTMLInputElement>,
+        field: string
+    ) {
+        if (e.key === "Enter") {
+            e.preventDefault();
+            const fieldOrder = [
+                "leverancier_id",
+                "leverancier_naam",
+                "transporteur",
+                "username",
+                "password",
+                "email",
+                "ppu",
+            ];
+            const currentIndex = fieldOrder.indexOf(field);
+            const nextIndex = currentIndex + 1;
+
+            if (nextIndex < fieldOrder.length) {
+                const nextField = fieldOrder[nextIndex] as keyof typeof fieldRefs;
+                setTimeout(() => {
+                    fieldRefs[nextField].current?.focus();
+                }, 0);
+            }
+        }
+    }
+
     function openEditModal(account: Leverancier) {
         setSelectedAccount(account);
         setEditForm({
+            leverancier_naam: account.leverancier_naam ?? "",
+            transporteur: account.transporteur ?? "",
             email: account.email ?? "",
             ppu: String(account.ppu ?? ""),
         });
@@ -141,6 +195,8 @@ export default function Home() {
     function closeEditModal() {
         setSelectedAccount(null);
         setEditForm({
+            leverancier_naam: "",
+            transporteur: "",
             email: "",
             ppu: "",
         });
@@ -158,6 +214,8 @@ export default function Home() {
 
             const payload: CreateLeverancierPayload = {
                 leverancier_id,
+                leverancier_naam: form.leverancier_naam.trim() === "" ? null : form.leverancier_naam.trim(),
+                transporteur: form.transporteur.trim() === "" ? null : form.transporteur.trim(),
                 username: form.username.trim(),
                 password: form.password,
                 email: form.email.trim() === "" ? null : form.email.trim(),
@@ -206,6 +264,18 @@ export default function Home() {
         try {
             const payload: PatchLeverancierPayload = {};
 
+            const trimmedLeverancierNaam = editForm.leverancier_naam.trim();
+            const leverancierNaamAsNullable = trimmedLeverancierNaam === "" ? null : trimmedLeverancierNaam;
+            if (leverancierNaamAsNullable !== (selectedAccount.leverancier_naam ?? null)) {
+                payload.leverancier_naam = leverancierNaamAsNullable;
+            }
+
+            const trimmedTransporteur = editForm.transporteur.trim();
+            const transporteurAsNullable = trimmedTransporteur === "" ? null : trimmedTransporteur;
+            if (transporteurAsNullable !== (selectedAccount.transporteur ?? null)) {
+                payload.transporteur = transporteurAsNullable;
+            }
+
             const trimmedEmail = editForm.email.trim();
             const emailAsNullable = trimmedEmail === "" ? null : trimmedEmail;
             if (emailAsNullable !== (selectedAccount.email ?? null)) {
@@ -220,7 +290,7 @@ export default function Home() {
                 payload.ppu = parsedPpu;
             }
 
-            if (payload.email === undefined && payload.ppu === undefined) {
+            if (Object.keys(payload).length === 0) {
                 closeEditModal();
                 return;
             }
@@ -286,7 +356,7 @@ export default function Home() {
 
     return (
         <main className="flex-1 px-4 sm:px-6 lg:px-8 py-8 bg-slate-100">
-            <div className="mx-auto max-w-4xl">
+            <div className="mx-auto max-w-6xl">
                 <section className="bg-white rounded-xl shadow p-6 flex flex-col">
                     {/* Header Row */}
                     <div className="flex items-center gap-4 mb-4">
@@ -294,7 +364,7 @@ export default function Home() {
                         <div className="flex-1">
                             <input
                                 type="text"
-                                placeholder="Search by ID or Username..."
+                                placeholder="Search by ID or leverancier's naam..."
                                 value={searchQuery}
                                 onChange={(e) => handleSearchChange(e.target.value)}
                                 className={inputClass}
@@ -317,7 +387,7 @@ export default function Home() {
                     </div>
 
                     <p className="text-xs text-slate-700 mb-4">
-                        Left click a row to update <strong>email</strong> and <strong>ppu</strong>.
+                        Left click a row to update <strong>leverancier's naam</strong>, <strong>transporteur</strong>, <strong>email</strong> and <strong>ppu</strong>.
                     </p>
 
                     {loading ? (
@@ -330,7 +400,9 @@ export default function Home() {
                                 <table className="w-full border border-slate-300 text-slate-900">
                                     <thead className="bg-slate-200 text-slate-900">
                                         <tr>
-                                            <th className="text-left p-3 border-b border-slate-300 font-semibold">ID</th>
+                                            <th className="text-left p-3 border-b border-slate-300 font-semibold">Lev-nr</th>
+                                            <th className="text-left p-3 border-b border-slate-300 font-semibold">Lev-naam</th>
+                                            <th className="text-left p-3 border-b border-slate-300 font-semibold">Transporteur</th>
                                             <th className="text-left p-3 border-b border-slate-300 font-semibold">Username</th>
                                             <th className="text-left p-3 border-b border-slate-300 font-semibold">Email</th>
                                             <th className="text-left p-3 border-b border-slate-300 font-semibold">PPU</th>
@@ -345,6 +417,8 @@ export default function Home() {
                                                 onClick={() => openEditModal(a)}
                                             >
                                                 <td className="p-3 border-b border-slate-200">{a.leverancier_id}</td>
+                                                <td className="p-3 border-b border-slate-200">{a.leverancier_naam ?? "-"}</td>
+                                                <td className="p-3 border-b border-slate-200">{a.transporteur ?? "-"}</td>
                                                 <td className="p-3 border-b border-slate-200">{a.username}</td>
                                                 <td className="p-3 border-b border-slate-200">{a.email ?? "-"}</td>
                                                 <td className="p-3 border-b border-slate-200">{a.ppu}</td>
@@ -374,8 +448,8 @@ export default function Home() {
                                                 key={page}
                                                 onClick={() => setCurrentPage(page)}
                                                 className={`px-3 py-1 rounded-md transition ${currentPage === page
-                                                        ? "bg-[#013c59] text-white"
-                                                        : "border border-[#013c59] text-[#013c59] hover:bg-[#013c59] hover:text-white"
+                                                    ? "bg-[#013c59] text-white"
+                                                    : "border border-[#013c59] text-[#013c59] hover:bg-[#013c59] hover:text-white"
                                                     }`}
                                             >
                                                 {page}
@@ -416,43 +490,73 @@ export default function Home() {
 
                         <form onSubmit={handleCreate} className="space-y-3">
                             <input
+                                ref={fieldRefs.leverancier_id}
                                 type="text"
                                 className={inputClass}
-                                placeholder="LG401-32"
+                                placeholder="LGxxx-xx"
                                 value={form.leverancier_id}
                                 onChange={(e) => setForm((s) => ({ ...s, leverancier_id: e.target.value }))}
+                                onKeyDown={(e) => handleCreateKeyDown(e, "leverancier_id")}
                             />
 
                             <input
+                                ref={fieldRefs.leverancier_naam}
+                                type="text"
+                                className={inputClass}
+                                placeholder="Leverancier's naam (optional)"
+                                value={form.leverancier_naam}
+                                onChange={(e) => setForm((s) => ({ ...s, leverancier_naam: e.target.value }))}
+                                onKeyDown={(e) => handleCreateKeyDown(e, "leverancier_naam")}
+                            />
+
+                            <input
+                                ref={fieldRefs.transporteur}
+                                type="text"
+                                className={inputClass}
+                                placeholder="Transporteur (optional)"
+                                value={form.transporteur}
+                                onChange={(e) => setForm((s) => ({ ...s, transporteur: e.target.value }))}
+                                onKeyDown={(e) => handleCreateKeyDown(e, "transporteur")}
+                            />
+
+                            <input
+                                ref={fieldRefs.username}
                                 type="text"
                                 className={inputClass}
                                 placeholder="username"
                                 value={form.username}
                                 onChange={(e) => setForm((s) => ({ ...s, username: e.target.value }))}
+                                onKeyDown={(e) => handleCreateKeyDown(e, "username")}
                             />
 
                             <input
+                                ref={fieldRefs.password}
                                 type="password"
                                 className={inputClass}
                                 placeholder="password"
                                 value={form.password}
                                 onChange={(e) => setForm((s) => ({ ...s, password: e.target.value }))}
+                                onKeyDown={(e) => handleCreateKeyDown(e, "password")}
                             />
 
                             <input
+                                ref={fieldRefs.email}
                                 type="email"
                                 className={inputClass}
                                 placeholder="email (optional)"
                                 value={form.email}
                                 onChange={(e) => setForm((s) => ({ ...s, email: e.target.value }))}
+                                onKeyDown={(e) => handleCreateKeyDown(e, "email")}
                             />
 
                             <input
+                                ref={fieldRefs.ppu}
                                 type="number"
                                 className={inputClass}
                                 placeholder="ppu"
                                 value={form.ppu}
                                 onChange={(e) => setForm((s) => ({ ...s, ppu: e.target.value }))}
+                                onKeyDown={(e) => handleCreateKeyDown(e, "ppu")}
                             />
 
                             <div className="flex gap-2 pt-1">
@@ -489,7 +593,7 @@ export default function Home() {
                     >
                         <div className="flex items-center justify-between mb-4">
                             <h3 className="text-lg font-semibold text-[#013c59]">
-                                Update account #{selectedAccount.leverancier_id}
+                                Update #{selectedAccount.leverancier_id}
                             </h3>
                             <button
                                 onClick={handleDelete}
@@ -501,6 +605,22 @@ export default function Home() {
                         </div>
 
                         <form onSubmit={handlePatch} className="space-y-3">
+                            <input
+                                type="text"
+                                className={inputClass}
+                                placeholder="Leverancier's naam (empty = null)"
+                                value={editForm.leverancier_naam}
+                                onChange={(e) => setEditForm((s) => ({ ...s, leverancier_naam: e.target.value }))}
+                            />
+
+                            <input
+                                type="text"
+                                className={inputClass}
+                                placeholder="Transporteur (empty = null)"
+                                value={editForm.transporteur}
+                                onChange={(e) => setEditForm((s) => ({ ...s, transporteur: e.target.value }))}
+                            />
+
                             <input
                                 type="email"
                                 className={inputClass}

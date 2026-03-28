@@ -12,7 +12,7 @@ pub struct Model {
     pub starttijd: String,
     pub eindtijd: String,
     pub landing_type: String,
-    #[sea_orm(belongs_to, from = "rit_nmr", to = "rit_id")]
+    #[sea_orm(belongs_to, from = "rit_nmr", to = "id")]
     pub rit: HasOne<super::rit::Entity>,
     #[sea_orm(belongs_to, from = "dock_nmr", to = "dock_id")]
     pub dock: HasOne<super::dock::Entity>,

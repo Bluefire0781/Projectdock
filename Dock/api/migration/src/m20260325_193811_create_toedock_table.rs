@@ -30,7 +30,7 @@ impl MigrationTrait for Migration {
                         ForeignKey::create()
                             .name("fk_toegestane_dock_leverancier")
                             .from("toegestane_dock", "leverancier_id")
-                            .to("leverancier", "leverancier_id")
+                            .to("leverancier", "id")
                             .on_delete(ForeignKeyAction::Cascade),
                     )
                     .to_owned(),
