@@ -2,36 +2,40 @@
 
 import { useEffect, useState, useRef } from "react";
 
+type Account = {
+    id: number;
+    username: string;
+    email: string | null;
+    role: string | null;
+};
+
 type Leverancier = {
     leverancier_id: string;
     leverancier_naam: string | null;
     transporteur: string | null;
-    username: string;
-    email: string | null;
     ppu: number;
-    role: string | null;
+    account_id: number;
+    account_username?: string;
 };
 
 type CreateLeverancierPayload = {
     leverancier_id: string;
     leverancier_naam: string | null;
     transporteur: string | null;
-    username: string;
-    password: string;
-    email: string | null;
     ppu: number;
-    role: string;
+    account_id: number;
 };
 
 type PatchLeverancierPayload = {
     leverancier_naam?: string | null;
     transporteur?: string | null;
-    email?: string | null;
     ppu?: number;
+    account_id?: number;
 };
 
 export default function Home() {
-    const [accounts, setAccounts] = useState<Leverancier[]>([]);
+    const [leveranciers, setLeveranciers] = useState<Leverancier[]>([]);
+    const [accountsList, setAccountsList] = useState<Account[]>([]);
     const [loading, setLoading] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [updating, setUpdating] = useState(false);
@@ -40,7 +44,7 @@ export default function Home() {
     const [successMsg, setSuccessMsg] = useState<string | null>(null);
     const [currentPage, setCurrentPage] = useState(1);
     const [searchQuery, setSearchQuery] = useState("");
-    const [allAccounts, setAllAccounts] = useState<Leverancier[]>([]);
+    const [allLeveranciers, setAllLeveranciers] = useState<Leverancier[]>([]);
 
     const ACCOUNTS_PER_PAGE = 10;
 
@@ -48,20 +52,27 @@ export default function Home() {
         leverancier_id: "",
         leverancier_naam: "",
         transporteur: "",
-        username: "",
-        password: "",
-        email: "",
         ppu: "",
+        account_id: "",
+        account_search: "",
     });
 
-    const [selectedAccount, setSelectedAccount] = useState<Leverancier | null>(null);
+    const [filteredAccounts, setFilteredAccounts] = useState<Account[]>([]);
+    const [showAccountDropdown, setShowAccountDropdown] = useState(false);
+
+    const [selectedLeverancier, setSelectedLeverancier] = useState<Leverancier | null>(null);
     const [showCreateModal, setShowCreateModal] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [editForm, setEditForm] = useState({
         leverancier_naam: "",
         transporteur: "",
-        email: "",
         ppu: "",
+        account_id: "",
+        account_search: "",
     });
+
+    const [filteredEditAccounts, setFilteredEditAccounts] = useState<Account[]>([]);
+    const [showEditAccountDropdown, setShowEditAccountDropdown] = useState(false);
 
     const API_BASE =
         process.env.NEXT_PUBLIC_API_URL?.trim() || "http://localhost:8080";
@@ -73,13 +84,11 @@ export default function Home() {
         leverancier_id: useRef<HTMLInputElement>(null),
         leverancier_naam: useRef<HTMLInputElement>(null),
         transporteur: useRef<HTMLInputElement>(null),
-        username: useRef<HTMLInputElement>(null),
-        password: useRef<HTMLInputElement>(null),
-        email: useRef<HTMLInputElement>(null),
         ppu: useRef<HTMLInputElement>(null),
+        account_search: useRef<HTMLInputElement>(null),
     };
 
-    async function fetchAccounts() {
+    async function fetchLeveranciers() {
         setLoading(true);
         setError(null);
         setSearchQuery("");
@@ -89,12 +98,30 @@ export default function Home() {
 
             if (!res.ok) {
                 const text = await res.text();
-                throw new Error(`Failed to fetch accounts (${res.status}): ${text}`);
+                throw new Error(`Failed to fetch leveranciers (${res.status}): ${text}`);
             }
 
             const data = (await res.json()) as Leverancier[];
-            setAllAccounts(data);
-            setAccounts(data);
+
+            // Fetch all accounts to map IDs to usernames
+            const accountsRes = await fetch(`${API_BASE}/accounts`, { method: "GET" });
+            if (accountsRes.ok) {
+                const accountsData = (await accountsRes.json()) as Account[];
+                setAccountsList(accountsData);
+
+                // Map account_id to account_username
+                const enrichedData = data.map((leverancier) => ({
+                    ...leverancier,
+                    account_username: accountsData.find((acc) => acc.id === leverancier.account_id)?.username || "Unknown",
+                }));
+
+                setAllLeveranciers(enrichedData);
+                setLeveranciers(enrichedData);
+            } else {
+                setAllLeveranciers(data);
+                setLeveranciers(data);
+            }
+
             setCurrentPage(1);
         } catch (err) {
             setError(err instanceof Error ? err.message : "Unknown error");
@@ -108,20 +135,72 @@ export default function Home() {
         setCurrentPage(1);
 
         if (query.trim() === "") {
-            setAccounts(allAccounts);
+            setLeveranciers(allLeveranciers);
             return;
         }
 
         const queryLower = query.toLowerCase();
-        const filtered = allAccounts.filter((account) =>
-            account.leverancier_id.toLowerCase().includes(queryLower) ||
-            account.leverancier_naam?.toLowerCase().includes(queryLower)
+        const filtered = allLeveranciers.filter((lev) =>
+            lev.leverancier_id.toLowerCase().includes(queryLower) ||
+            lev.leverancier_naam?.toLowerCase().includes(queryLower)
         );
-        setAccounts(filtered);
+        setLeveranciers(filtered);
+    }
+
+    function handleAccountSearch(query: string) {
+        setForm((s) => ({ ...s, account_search: query }));
+
+        if (query.trim() === "") {
+            setFilteredAccounts([]);
+            setShowAccountDropdown(false);
+            return;
+        }
+
+        const queryLower = query.toLowerCase();
+        const filtered = accountsList.filter((acc) =>
+            acc.username.toLowerCase().includes(queryLower)
+        );
+        setFilteredAccounts(filtered);
+        setShowAccountDropdown(true);
+    }
+
+    function handleEditAccountSearch(query: string) {
+        setEditForm((s) => ({ ...s, account_search: query }));
+
+        if (query.trim() === "") {
+            setFilteredEditAccounts([]);
+            setShowEditAccountDropdown(false);
+            return;
+        }
+
+        const queryLower = query.toLowerCase();
+        const filtered = accountsList.filter((acc) =>
+            acc.username.toLowerCase().includes(queryLower)
+        );
+        setFilteredEditAccounts(filtered);
+        setShowEditAccountDropdown(true);
+    }
+
+    function selectAccount(account: Account) {
+        setForm((s) => ({
+            ...s,
+            account_id: String(account.id),
+            account_search: account.username,
+        }));
+        setShowAccountDropdown(false);
+    }
+
+    function selectEditAccount(account: Account) {
+        setEditForm((s) => ({
+            ...s,
+            account_id: String(account.id),
+            account_search: account.username,
+        }));
+        setShowEditAccountDropdown(false);
     }
 
     useEffect(() => {
-        fetchAccounts();
+        fetchLeveranciers();
     }, []);
 
     function openCreateModal() {
@@ -132,11 +211,12 @@ export default function Home() {
             leverancier_id: "",
             leverancier_naam: "",
             transporteur: "",
-            username: "",
-            password: "",
-            email: "",
             ppu: "",
+            account_id: "",
+            account_search: "",
         });
+        setFilteredAccounts([]);
+        setShowAccountDropdown(false);
         setTimeout(() => fieldRefs.leverancier_id.current?.focus(), 0);
     }
 
@@ -146,11 +226,12 @@ export default function Home() {
             leverancier_id: "",
             leverancier_naam: "",
             transporteur: "",
-            username: "",
-            password: "",
-            email: "",
             ppu: "",
+            account_id: "",
+            account_search: "",
         });
+        setFilteredAccounts([]);
+        setShowAccountDropdown(false);
     }
 
     function handleCreateKeyDown(
@@ -163,10 +244,8 @@ export default function Home() {
                 "leverancier_id",
                 "leverancier_naam",
                 "transporteur",
-                "username",
-                "password",
-                "email",
                 "ppu",
+                "account_search",
             ];
             const currentIndex = fieldOrder.indexOf(field);
             const nextIndex = currentIndex + 1;
@@ -180,26 +259,44 @@ export default function Home() {
         }
     }
 
-    function openEditModal(account: Leverancier) {
-        setSelectedAccount(account);
+    function openEditModal(leverancier: Leverancier) {
+        setSelectedLeverancier(leverancier);
         setEditForm({
-            leverancier_naam: account.leverancier_naam ?? "",
-            transporteur: account.transporteur ?? "",
-            email: account.email ?? "",
-            ppu: String(account.ppu ?? ""),
+            leverancier_naam: leverancier.leverancier_naam ?? "",
+            transporteur: leverancier.transporteur ?? "",
+            ppu: String(leverancier.ppu ?? ""),
+            account_id: String(leverancier.account_id ?? ""),
+            account_search: leverancier.account_username ?? "",
         });
+        setFilteredEditAccounts([]);
+        setShowEditAccountDropdown(false);
         setError(null);
         setSuccessMsg(null);
     }
 
     function closeEditModal() {
-        setSelectedAccount(null);
+        setSelectedLeverancier(null);
         setEditForm({
             leverancier_naam: "",
             transporteur: "",
-            email: "",
             ppu: "",
+            account_id: "",
+            account_search: "",
         });
+        setFilteredEditAccounts([]);
+        setShowEditAccountDropdown(false);
+    }
+
+    function openDeleteConfirm(leverancier: Leverancier) {
+        setSelectedLeverancier(leverancier);
+        setShowDeleteConfirm(true);
+        setError(null);
+        setSuccessMsg(null);
+    }
+
+    function closeDeleteConfirm() {
+        setSelectedLeverancier(null);
+        setShowDeleteConfirm(false);
     }
 
     async function handleCreate(e: React.FormEvent) {
@@ -211,24 +308,22 @@ export default function Home() {
         try {
             const leverancier_id = String(form.leverancier_id);
             const ppu = Number(form.ppu);
+            const account_id = Number(form.account_id);
+
+            if (!form.account_id) {
+                throw new Error("Account is required.");
+            }
 
             const payload: CreateLeverancierPayload = {
                 leverancier_id,
                 leverancier_naam: form.leverancier_naam.trim() === "" ? null : form.leverancier_naam.trim(),
                 transporteur: form.transporteur.trim() === "" ? null : form.transporteur.trim(),
-                username: form.username.trim(),
-                password: form.password,
-                email: form.email.trim() === "" ? null : form.email.trim(),
                 ppu,
-                role: "user",
+                account_id,
             };
 
-            if (!payload.username || !payload.password) {
-                throw new Error("username and password are required.");
-            }
-
             if (!Number.isFinite(payload.ppu)) {
-                throw new Error("leverancier_id and ppu must be valid numbers.");
+                throw new Error("ppu must be a valid number.");
             }
 
             const res = await fetch(`${API_BASE}/leveranciers`, {
@@ -244,7 +339,7 @@ export default function Home() {
 
             setSuccessMsg("Leverancier created successfully.");
             closeCreateModal();
-            await fetchAccounts();
+            await fetchLeveranciers();
         } catch (err) {
             setError(err instanceof Error ? err.message : "Unknown error");
         } finally {
@@ -255,7 +350,7 @@ export default function Home() {
     async function handlePatch(e: React.FormEvent) {
         e.preventDefault();
 
-        if (!selectedAccount) return;
+        if (!selectedLeverancier) return;
 
         setUpdating(true);
         setError(null);
@@ -266,28 +361,27 @@ export default function Home() {
 
             const trimmedLeverancierNaam = editForm.leverancier_naam.trim();
             const leverancierNaamAsNullable = trimmedLeverancierNaam === "" ? null : trimmedLeverancierNaam;
-            if (leverancierNaamAsNullable !== (selectedAccount.leverancier_naam ?? null)) {
+            if (leverancierNaamAsNullable !== (selectedLeverancier.leverancier_naam ?? null)) {
                 payload.leverancier_naam = leverancierNaamAsNullable;
             }
 
             const trimmedTransporteur = editForm.transporteur.trim();
             const transporteurAsNullable = trimmedTransporteur === "" ? null : trimmedTransporteur;
-            if (transporteurAsNullable !== (selectedAccount.transporteur ?? null)) {
+            if (transporteurAsNullable !== (selectedLeverancier.transporteur ?? null)) {
                 payload.transporteur = transporteurAsNullable;
-            }
-
-            const trimmedEmail = editForm.email.trim();
-            const emailAsNullable = trimmedEmail === "" ? null : trimmedEmail;
-            if (emailAsNullable !== (selectedAccount.email ?? null)) {
-                payload.email = emailAsNullable;
             }
 
             const parsedPpu = Number(editForm.ppu);
             if (!Number.isFinite(parsedPpu)) {
                 throw new Error("ppu must be a valid number.");
             }
-            if (parsedPpu !== selectedAccount.ppu) {
+            if (parsedPpu !== selectedLeverancier.ppu) {
                 payload.ppu = parsedPpu;
+            }
+
+            const parsedAccountId = Number(editForm.account_id);
+            if (parsedAccountId !== selectedLeverancier.account_id) {
+                payload.account_id = parsedAccountId;
             }
 
             if (Object.keys(payload).length === 0) {
@@ -296,7 +390,7 @@ export default function Home() {
             }
 
             const res = await fetch(
-                `${API_BASE}/leveranciers/${selectedAccount.leverancier_id}`,
+                `${API_BASE}/leveranciers/${selectedLeverancier.leverancier_id}`,
                 {
                     method: "PATCH",
                     headers: { "Content-Type": "application/json" },
@@ -311,7 +405,7 @@ export default function Home() {
 
             setSuccessMsg("Leverancier updated successfully.");
             closeEditModal();
-            await fetchAccounts();
+            await fetchLeveranciers();
         } catch (err) {
             setError(err instanceof Error ? err.message : "Unknown error");
         } finally {
@@ -320,14 +414,14 @@ export default function Home() {
     }
 
     async function handleDelete() {
-        if (!selectedAccount) return;
+        if (!selectedLeverancier) return;
 
         setDeleting(true);
         setError(null);
 
         try {
             const res = await fetch(
-                `${API_BASE}/leveranciers/${selectedAccount.leverancier_id}`,
+                `${API_BASE}/leveranciers/${selectedLeverancier.leverancier_id}`,
                 {
                     method: "DELETE",
                 }
@@ -338,9 +432,9 @@ export default function Home() {
                 throw new Error(`Delete failed (${res.status}): ${text}`);
             }
 
-            setSuccessMsg(`Leverancier ${selectedAccount.leverancier_id} deleted successfully.`);
-            closeEditModal();
-            await fetchAccounts();
+            setSuccessMsg(`Leverancier ${selectedLeverancier.leverancier_id} deleted successfully.`);
+            closeDeleteConfirm();
+            await fetchLeveranciers();
         } catch (err) {
             setError(err instanceof Error ? err.message : "Unknown error");
         } finally {
@@ -349,10 +443,10 @@ export default function Home() {
     }
 
     // Pagination logic
-    const totalPages = Math.ceil(accounts.length / ACCOUNTS_PER_PAGE);
+    const totalPages = Math.ceil(leveranciers.length / ACCOUNTS_PER_PAGE);
     const startIndex = (currentPage - 1) * ACCOUNTS_PER_PAGE;
     const endIndex = startIndex + ACCOUNTS_PER_PAGE;
-    const paginatedAccounts = accounts.slice(startIndex, endIndex);
+    const paginatedLeveranciers = leveranciers.slice(startIndex, endIndex);
 
     return (
         <main className="flex-1 px-4 sm:px-6 lg:px-8 py-8 bg-slate-100">
@@ -360,7 +454,7 @@ export default function Home() {
                 <section className="bg-white rounded-xl shadow p-6 flex flex-col">
                     {/* Header Row */}
                     <div className="flex items-center gap-4 mb-4">
-                        <h2 className="text-xl font-semibold text-[#013c59]">All Accounts</h2>
+                        <h2 className="text-xl font-semibold text-[#013c59]">All Leveranciers</h2>
                         <div className="flex-1">
                             <input
                                 type="text"
@@ -378,7 +472,7 @@ export default function Home() {
                                 Create
                             </button>
                             <button
-                                onClick={fetchAccounts}
+                                onClick={fetchLeveranciers}
                                 className="border border-[#013c59] text-[#013c59] px-4 py-2 rounded-md hover:bg-[#013c59] hover:text-white transition font-semibold"
                             >
                                 Refresh
@@ -387,13 +481,13 @@ export default function Home() {
                     </div>
 
                     <p className="text-xs text-slate-700 mb-4">
-                        Left click a row to update <strong>leverancier's naam</strong>, <strong>transporteur</strong>, <strong>email</strong> and <strong>ppu</strong>.
+                        Left click a row to update. Right click to delete.
                     </p>
 
                     {loading ? (
                         <p className="text-slate-700">Loading...</p>
-                    ) : accounts.length === 0 ? (
-                        <p className="text-slate-700">No accounts found.</p>
+                    ) : leveranciers.length === 0 ? (
+                        <p className="text-slate-700">No leveranciers found.</p>
                     ) : (
                         <>
                             <div className="overflow-x-auto">
@@ -403,26 +497,28 @@ export default function Home() {
                                             <th className="text-left p-3 border-b border-slate-300 font-semibold">Lev-nr</th>
                                             <th className="text-left p-3 border-b border-slate-300 font-semibold">Lev-naam</th>
                                             <th className="text-left p-3 border-b border-slate-300 font-semibold">Transporteur</th>
-                                            <th className="text-left p-3 border-b border-slate-300 font-semibold">Username</th>
-                                            <th className="text-left p-3 border-b border-slate-300 font-semibold">Email</th>
                                             <th className="text-left p-3 border-b border-slate-300 font-semibold">PPU</th>
-                                            <th className="text-left p-3 border-b border-slate-300 font-semibold">Role</th>
+                                            <th className="text-left p-3 border-b border-slate-300 font-semibold">Account</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {paginatedAccounts.map((a) => (
+                                        {paginatedLeveranciers.map((lev) => (
                                             <tr
-                                                key={a.leverancier_id}
+                                                key={lev.leverancier_id}
                                                 className="hover:bg-slate-100 cursor-pointer"
-                                                onClick={() => openEditModal(a)}
+                                                onClick={() => openEditModal(lev)}
+                                                onContextMenu={(e) => {
+                                                    e.preventDefault();
+                                                    openDeleteConfirm(lev);
+                                                }}
                                             >
-                                                <td className="p-3 border-b border-slate-200">{a.leverancier_id}</td>
-                                                <td className="p-3 border-b border-slate-200">{a.leverancier_naam ?? "-"}</td>
-                                                <td className="p-3 border-b border-slate-200">{a.transporteur ?? "-"}</td>
-                                                <td className="p-3 border-b border-slate-200">{a.username}</td>
-                                                <td className="p-3 border-b border-slate-200">{a.email ?? "-"}</td>
-                                                <td className="p-3 border-b border-slate-200">{a.ppu}</td>
-                                                <td className="p-3 border-b border-slate-200">{a.role ?? "user"}</td>
+                                                <td className="p-3 border-b border-slate-200">{lev.leverancier_id}</td>
+                                                <td className="p-3 border-b border-slate-200">{lev.leverancier_naam ?? "-"}</td>
+                                                <td className="p-3 border-b border-slate-200">{lev.transporteur ?? "-"}</td>
+                                                <td className="p-3 border-b border-slate-200">{lev.ppu}</td>
+                                                <td className="p-3 border-b border-slate-200 font-semibold text-[#013c59]">
+                                                    {lev.account_username}
+                                                </td>
                                             </tr>
                                         ))}
                                     </tbody>
@@ -432,7 +528,7 @@ export default function Home() {
                             {/* Pagination Controls */}
                             <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-300">
                                 <p className="text-sm text-slate-700">
-                                    Showing {accounts.length > 0 ? startIndex + 1 : 0} to {Math.min(endIndex, accounts.length)} of {accounts.length} accounts
+                                    Showing {leveranciers.length > 0 ? startIndex + 1 : 0} to {Math.min(endIndex, leveranciers.length)} of {leveranciers.length} leveranciers
                                 </p>
                                 <div className="flex gap-2">
                                     <button
@@ -520,36 +616,6 @@ export default function Home() {
                             />
 
                             <input
-                                ref={fieldRefs.username}
-                                type="text"
-                                className={inputClass}
-                                placeholder="username"
-                                value={form.username}
-                                onChange={(e) => setForm((s) => ({ ...s, username: e.target.value }))}
-                                onKeyDown={(e) => handleCreateKeyDown(e, "username")}
-                            />
-
-                            <input
-                                ref={fieldRefs.password}
-                                type="password"
-                                className={inputClass}
-                                placeholder="password"
-                                value={form.password}
-                                onChange={(e) => setForm((s) => ({ ...s, password: e.target.value }))}
-                                onKeyDown={(e) => handleCreateKeyDown(e, "password")}
-                            />
-
-                            <input
-                                ref={fieldRefs.email}
-                                type="email"
-                                className={inputClass}
-                                placeholder="email (optional)"
-                                value={form.email}
-                                onChange={(e) => setForm((s) => ({ ...s, email: e.target.value }))}
-                                onKeyDown={(e) => handleCreateKeyDown(e, "email")}
-                            />
-
-                            <input
                                 ref={fieldRefs.ppu}
                                 type="number"
                                 className={inputClass}
@@ -558,6 +624,35 @@ export default function Home() {
                                 onChange={(e) => setForm((s) => ({ ...s, ppu: e.target.value }))}
                                 onKeyDown={(e) => handleCreateKeyDown(e, "ppu")}
                             />
+
+                            {/* Account Search with Autocomplete */}
+                            <div className="relative">
+                                <input
+                                    ref={fieldRefs.account_search}
+                                    type="text"
+                                    className={inputClass}
+                                    placeholder="Search account..."
+                                    value={form.account_search}
+                                    onChange={(e) => handleAccountSearch(e.target.value)}
+                                    onKeyDown={(e) => handleCreateKeyDown(e, "account_search")}
+                                    onFocus={() => form.account_search && setShowAccountDropdown(true)}
+                                />
+
+                                {showAccountDropdown && filteredAccounts.length > 0 && (
+                                    <div className="absolute top-full left-0 right-0 bg-white border border-slate-300 rounded-md mt-1 shadow-lg z-10 max-h-48 overflow-y-auto">
+                                        {filteredAccounts.map((acc) => (
+                                            <div
+                                                key={acc.id}
+                                                onClick={() => selectAccount(acc)}
+                                                className="px-3 py-2 hover:bg-slate-100 cursor-pointer border-b border-slate-200 last:border-b-0"
+                                            >
+                                                <div className="font-semibold text-[#013c59]">{acc.username}</div>
+                                                <div className="text-xs text-slate-600">{acc.email ?? "-"}</div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
 
                             <div className="flex gap-2 pt-1">
                                 <button
@@ -581,7 +676,7 @@ export default function Home() {
             )}
 
             {/* Edit Modal */}
-            {selectedAccount && (
+            {selectedLeverancier && !showDeleteConfirm && (
                 <div
                     className="fixed inset-0 z-50 flex items-center justify-center p-4"
                     style={{ backgroundColor: "rgba(0, 0, 0, 0.4)" }}
@@ -591,18 +686,9 @@ export default function Home() {
                         className="bg-white rounded-xl shadow-xl w-full max-w-md p-5"
                         onClick={(e) => e.stopPropagation()}
                     >
-                        <div className="flex items-center justify-between mb-4">
-                            <h3 className="text-lg font-semibold text-[#013c59]">
-                                Update #{selectedAccount.leverancier_id}
-                            </h3>
-                            <button
-                                onClick={handleDelete}
-                                disabled={deleting}
-                                className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700 disabled:opacity-60 text-sm font-semibold transition"
-                            >
-                                {deleting ? "Deleting..." : "Delete"}
-                            </button>
-                        </div>
+                        <h3 className="text-lg font-semibold text-[#013c59] mb-4">
+                            Update #{selectedLeverancier.leverancier_id}
+                        </h3>
 
                         <form onSubmit={handlePatch} className="space-y-3">
                             <input
@@ -622,20 +708,39 @@ export default function Home() {
                             />
 
                             <input
-                                type="email"
-                                className={inputClass}
-                                placeholder="email (empty = null)"
-                                value={editForm.email}
-                                onChange={(e) => setEditForm((s) => ({ ...s, email: e.target.value }))}
-                            />
-
-                            <input
                                 type="number"
                                 className={inputClass}
                                 placeholder="ppu"
                                 value={editForm.ppu}
                                 onChange={(e) => setEditForm((s) => ({ ...s, ppu: e.target.value }))}
                             />
+
+                            {/* Account Search with Autocomplete for Edit */}
+                            <div className="relative">
+                                <input
+                                    type="text"
+                                    className={inputClass}
+                                    placeholder="Search account..."
+                                    value={editForm.account_search}
+                                    onChange={(e) => handleEditAccountSearch(e.target.value)}
+                                    onFocus={() => editForm.account_search && setShowEditAccountDropdown(true)}
+                                />
+
+                                {showEditAccountDropdown && filteredEditAccounts.length > 0 && (
+                                    <div className="absolute top-full left-0 right-0 bg-white border border-slate-300 rounded-md mt-1 shadow-lg z-10 max-h-48 overflow-y-auto">
+                                        {filteredEditAccounts.map((acc) => (
+                                            <div
+                                                key={acc.id}
+                                                onClick={() => selectEditAccount(acc)}
+                                                className="px-3 py-2 hover:bg-slate-100 cursor-pointer border-b border-slate-200 last:border-b-0"
+                                            >
+                                                <div className="font-semibold text-[#013c59]">{acc.username}</div>
+                                                <div className="text-xs text-slate-600">{acc.email ?? "-"}</div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
 
                             <div className="flex gap-2 pt-1">
                                 <button
@@ -654,6 +759,46 @@ export default function Home() {
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Delete Confirmation Modal */}
+            {showDeleteConfirm && selectedLeverancier && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center p-4"
+                    style={{ backgroundColor: "rgba(0, 0, 0, 0.4)" }}
+                    onClick={closeDeleteConfirm}
+                >
+                    <div
+                        className="bg-white rounded-xl shadow-xl w-full max-w-md p-5"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <h3 className="text-lg font-semibold text-red-600 mb-4">
+                            Delete Leverancier?
+                        </h3>
+
+                        <p className="text-slate-700 mb-6">
+                            Are you sure you want to delete leverancier <strong>{selectedLeverancier.leverancier_id}</strong>? This action cannot be undone.
+                        </p>
+
+                        <div className="flex gap-2">
+                            <button
+                                type="button"
+                                onClick={closeDeleteConfirm}
+                                className="w-1/2 border border-slate-300 text-slate-700 py-2 rounded-md hover:bg-slate-100"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleDelete}
+                                disabled={deleting}
+                                className="w-1/2 bg-red-600 text-white py-2 rounded-md hover:bg-red-700 disabled:opacity-60"
+                            >
+                                {deleting ? "Deleting..." : "Delete"}
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

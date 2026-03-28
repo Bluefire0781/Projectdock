@@ -15,11 +15,15 @@ impl MigrationTrait for Migration {
                     .col(string("leverancier_id").not_null().unique_key())
                     .col(string("leverancier_naam").null())
                     .col(string("transporteur").null())
-                    .col(string("username").not_null())
-                    .col(string("password").not_null())
-                    .col(string("email").null())
                     .col(big_integer("ppu").not_null())
-                    .col(string("role").not_null().default("user"))
+                    .col(integer("account_id").not_null())
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk_leverancier_accout")
+                            .from("leverancier", "account_id")
+                            .to("account", "id")
+                            .on_delete(ForeignKeyAction::Cascade),
+                    )
                     .to_owned(),
             )
             .await

@@ -1,45 +1,22 @@
 use crate::models::leverancier;
-use argon2::{
-    Argon2,
-    password_hash::{PasswordHasher, SaltString, rand_core::OsRng},
-};
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, DatabaseConnection, DeleteResult, EntityTrait, QueryFilter, Set,
 };
-
-// Helper function to hash password
-fn hash_password(password: &str) -> Result<String, argon2::password_hash::Error> {
-    let salt = SaltString::generate(&mut OsRng);
-    let argon2 = Argon2::default();
-
-    Ok(argon2
-        .hash_password(password.as_bytes(), &salt)? // ← Same as docs
-        .to_string()) // ← Same as docs
-}
 
 pub async fn create_leverancier(
     db: &DatabaseConnection, // Accept connection as parameter
     leverancier_id: String,
     leverancier_naam: Option<String>,
     transporteur: Option<String>,
-    username: String,
-    password: String,
-    email: Option<String>,
     ppu: i64,
-    role: Option<String>,
+    account_id: i32,
 ) -> Result<leverancier::Model, sea_orm::DbErr> {
-    let hashed_password =
-        hash_password(&password).map_err(|e| sea_orm::DbErr::Custom(e.to_string()))?;
-
     let new_leverancier = leverancier::ActiveModel {
         leverancier_id: Set(leverancier_id),
         leverancier_naam: Set(leverancier_naam),
         transporteur: Set(transporteur),
-        username: Set(username),
-        password: Set(hashed_password),
-        email: Set(email),
         ppu: Set(ppu),
-        role: Set(role),
+        account_id: Set(account_id),
         ..Default::default()
     };
 
@@ -57,8 +34,8 @@ pub async fn update_leverancier(
     leverancier_id: String,
     leverancier_naam: Option<String>,
     transporteur: Option<String>,
-    email: Option<String>,
     ppu: Option<i64>,
+    account_id: Option<i32>,
 ) -> Result<leverancier::Model, sea_orm::DbErr> {
     let existing =
         find_by_one(db, &leverancier_id)
@@ -78,12 +55,12 @@ pub async fn update_leverancier(
         active_model.transporteur = Set(Some(transporteur_val));
     }
 
-    if let Some(email_val) = email {
-        active_model.email = Set(Some(email_val));
-    }
-
     if let Some(ppu_val) = ppu {
         active_model.ppu = Set(ppu_val);
+    }
+
+    if let Some(id) = account_id {
+        active_model.account_id = Set(id);
     }
 
     // Update and return

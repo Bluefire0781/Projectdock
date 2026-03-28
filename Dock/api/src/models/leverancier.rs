@@ -7,19 +7,16 @@ pub struct CreateLeverancier {
     pub leverancier_id: String,
     pub leverancier_naam: Option<String>,
     pub transporteur: Option<String>,
-    pub username: String,
-    pub password: String,
-    pub email: Option<String>,
     pub ppu: i64,
-    pub role: Option<String>,
+    pub account_id: i32,
 }
 
 #[derive(Deserialize)]
 pub struct UpdateLeverancier {
     pub leverancier_naam: Option<String>,
     pub transporteur: Option<String>,
-    pub email: Option<String>,
     pub ppu: Option<i64>,
+    pub account_id: Option<i32>,
 }
 
 #[derive(Serialize)]
@@ -27,10 +24,8 @@ pub struct LeverancierResponse {
     pub leverancier_id: String,
     pub leverancier_naam: Option<String>,
     pub transporteur: Option<String>,
-    pub username: String,
-    pub email: Option<String>,
     pub ppu: i64,
-    pub role: Option<String>,
+    pub account_id: i32,
 }
 
 //============Model=============//
@@ -44,11 +39,10 @@ pub struct Model {
     pub leverancier_id: String,
     pub leverancier_naam: Option<String>,
     pub transporteur: Option<String>,
-    pub username: String,
-    pub password: String,
-    pub email: Option<String>,
     pub ppu: i64,
-    pub role: Option<String>,
+    pub account_id: i32,
+    #[sea_orm(belongs_to, from = "account_id", to = "id")]
+    pub account: HasOne<super::account::Entity>,
     #[sea_orm(has_many)]
     pub rit: HasMany<super::rit::Entity>,
     #[sea_orm(has_many, via = "toegestane_dock")]

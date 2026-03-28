@@ -5,6 +5,7 @@ use axum::{
 };
 use tower_http::cors::{Any, CorsLayer};
 
+pub mod account_api;
 pub mod leverancier_api;
 pub mod users;
 
@@ -18,6 +19,12 @@ pub fn router() -> Router<AppState> {
         .route("/", get(root))
         .route("/users", post(users::create_user))
         .route("/add", get(add))
+        //account
+        .route("/accounts", get(account_api::find_all))
+        .route("/accounts", post(account_api::create_account))
+        .route("/accounts/{id}", delete(account_api::delete_account))
+        .route("/accounts/{id}", get(account_api::find_account))
+        //leverancier
         .route("/leveranciers", post(leverancier_api::create_leverancier))
         .route("/leveranciers", get(leverancier_api::find_all))
         .route(
