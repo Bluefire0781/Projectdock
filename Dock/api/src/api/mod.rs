@@ -1,7 +1,7 @@
-use crate::{models::leverancier, state::AppState};
+use crate::state::AppState;
 use axum::{
     Router,
-    routing::{delete, get, post},
+    routing::{delete, get, patch, post},
 };
 use tower_http::cors::{Any, CorsLayer};
 
@@ -27,6 +27,10 @@ pub fn router() -> Router<AppState> {
         .route(
             "/leverancier/{leverancier_id}",
             get(leverancier_api::find_leverancier),
+        )
+        .route(
+            "/leveranciers/{leverancier_id}",
+            patch(leverancier_api::update_leverancier),
         )
         .layer(cors)
 }

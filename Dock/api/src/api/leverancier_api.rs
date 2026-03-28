@@ -1,4 +1,4 @@
-use crate::models::{CreateLeverancier, LeverancierResponse};
+use crate::models::{CreateLeverancier, LeverancierResponse, UpdateLeverancier};
 use crate::service::leverancier_service;
 use crate::state::AppState;
 use axum::{
@@ -113,4 +113,40 @@ pub async fn delete_leverancier(
             role: leverancier.role,
         }),
     ))
+}
+
+pub async fn update_leverancier(
+    State(state): State<AppState>,
+    Path(leverancier_id): Path<String>,
+    Json(payload): Json<UpdateLeverancier>,
+) -> Result<(StatusCode, Json<LeverancierResponse>), StatusCode> {
+    // Check if leverancier exists
+    leverancier_service::find_by_one(&state.db, &leverancier_id)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+        .ok_or(StatusCode::NOT_FOUND)?;
+
+    // Update the leverancier
+    let updated = leverancier_service::update_leverancier(
+        &state.db,
+        leverancier_id,
+        payload.leverancier_naam,
+        payload.transporteur,
+        payload.email,
+        payload.ppu,
+    )
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    let response = LeverancierResponse {
+        leverancier_id: updated.leverancier_id,
+        leverancier_naam: updated.leverancier_naam,
+        transporteur: updated.transporteur,
+        username: updated.username,
+        email: updated.email,
+        ppu: updated.ppu,
+        role: updated.role,
+    };
+
+    Ok((StatusCode::OK, Json(response)))
 }

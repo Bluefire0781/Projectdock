@@ -52,14 +52,42 @@ pub async fn find_all(db: &DatabaseConnection) -> Result<Vec<leverancier::Model>
     Ok(leveranciers)
 }
 
-pub async fn find_by_one(
+pub async fn update_leverancier(
     db: &DatabaseConnection,
-    code: &str,
-) -> Result<Option<leverancier::Model>, sea_orm::DbErr> {
-    leverancier::Entity::find()
-        .filter(leverancier::Column::LeverancierId.eq(code))
-        .one(db)
-        .await
+    leverancier_id: String,
+    leverancier_naam: Option<String>,
+    transporteur: Option<String>,
+    email: Option<String>,
+    ppu: Option<i64>,
+) -> Result<leverancier::Model, sea_orm::DbErr> {
+    let existing =
+        find_by_one(db, &leverancier_id)
+            .await?
+            .ok_or(sea_orm::DbErr::RecordNotFound(
+                "Leverancier not found".to_string(),
+            ))?;
+
+    // Convert to ActiveModel
+    let mut active_model: leverancier::ActiveModel = existing.into();
+
+    if let Some(naam) = leverancier_naam {
+        active_model.leverancier_naam = Set(Some(naam));
+    }
+
+    if let Some(transporteur_val) = transporteur {
+        active_model.transporteur = Set(Some(transporteur_val));
+    }
+
+    if let Some(email_val) = email {
+        active_model.email = Set(Some(email_val));
+    }
+
+    if let Some(ppu_val) = ppu {
+        active_model.ppu = Set(ppu_val);
+    }
+
+    // Update and return
+    active_model.update(db).await
 }
 
 pub async fn delete_leverancier(
@@ -72,4 +100,14 @@ pub async fn delete_leverancier(
         .await?;
 
     Ok(res)
+}
+
+pub async fn find_by_one(
+    db: &DatabaseConnection,
+    leverancier: &str,
+) -> Result<Option<leverancier::Model>, sea_orm::DbErr> {
+    leverancier::Entity::find()
+        .filter(leverancier::Column::LeverancierId.eq(leverancier))
+        .one(db)
+        .await
 }

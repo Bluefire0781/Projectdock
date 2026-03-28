@@ -1,6 +1,7 @@
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
+//=============DTO===============///
 #[derive(Deserialize)]
 pub struct CreateLeverancier {
     pub leverancier_id: String,
@@ -11,6 +12,14 @@ pub struct CreateLeverancier {
     pub email: Option<String>,
     pub ppu: i64,
     pub role: Option<String>,
+}
+
+#[derive(Deserialize)]
+pub struct UpdateLeverancier {
+    pub leverancier_naam: Option<String>,
+    pub transporteur: Option<String>,
+    pub email: Option<String>,
+    pub ppu: Option<i64>,
 }
 
 #[derive(Serialize)]
@@ -24,6 +33,7 @@ pub struct LeverancierResponse {
     pub role: Option<String>,
 }
 
+//============Model=============//
 #[sea_orm::model]
 #[derive(DeriveEntityModel, Serialize, Debug, Clone, PartialEq, Eq, Default)]
 #[sea_orm(table_name = "leverancier")]
