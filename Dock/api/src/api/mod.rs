@@ -11,7 +11,7 @@ pub mod users;
 
 pub fn router() -> Router<AppState> {
     let cors = CorsLayer::new()
-        .allow_origin(Any) // allow localhost:3000
+        .allow_origin(Any)
         .allow_methods(Any)
         .allow_headers(Any);
 

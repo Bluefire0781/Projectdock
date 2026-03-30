@@ -14,6 +14,7 @@ async fn main() {
     // Connect to database at startup
     let db = db::connect().await.expect("Failed to connect to database");
 
+    //migration up
     let _ = migration::Migrator::up(&db, None).await;
 
     //db state

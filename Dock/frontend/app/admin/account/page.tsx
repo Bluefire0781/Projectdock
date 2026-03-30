@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 
-//types
+// types
 type Account = {
     id: number;
     username: string;
@@ -232,7 +232,6 @@ export default function AccountsPage() {
             setError(err instanceof Error ? err.message : "Unknown error");
         } finally {
             setDeleting(false);
-            setConfirmingDelete(false);
         }
     }
 
@@ -250,7 +249,6 @@ export default function AccountsPage() {
                 email: updateForm.email.trim() || null,
             };
 
-            // Prevent empty username
             if (!payload.username) {
                 throw new Error("username is required.");
             }
@@ -334,9 +332,6 @@ export default function AccountsPage() {
                                     <thead className="bg-slate-200 text-slate-900">
                                         <tr>
                                             <th className="text-left p-3 border-b border-slate-300 font-semibold">
-                                                ID
-                                            </th>
-                                            <th className="text-left p-3 border-b border-slate-300 font-semibold">
                                                 Username
                                             </th>
                                             <th className="text-left p-3 border-b border-slate-300 font-semibold">
@@ -354,9 +349,6 @@ export default function AccountsPage() {
                                                 className="hover:bg-slate-100 cursor-pointer"
                                                 onClick={() => openUpdateModal(account)}
                                             >
-                                                <td className="p-3 border-b border-slate-200">
-                                                    {account.id}
-                                                </td>
                                                 <td className="p-3 border-b border-slate-200 font-semibold">
                                                     {account.username}
                                                 </td>
@@ -517,7 +509,7 @@ export default function AccountsPage() {
                 </div>
             )}
 
-            {/* Update Account Modal with delete functionality */}
+            {/* Update Account Modal */}
             {showUpdateModal && selectedAccount && (
                 <div
                     className="fixed inset-0 z-50 flex items-center justify-center p-4"
@@ -575,6 +567,7 @@ export default function AccountsPage() {
                             </div>
                         </form>
 
+                        {/* Inline Delete in Edit Modal */}
                         <div className="mt-6">
                             {!confirmingDelete ? (
                                 <button
@@ -596,7 +589,7 @@ export default function AccountsPage() {
                                             type="button"
                                             onClick={() => setConfirmingDelete(false)}
                                             className="w-1/2 border border-slate-300 text-slate-700 py-2 rounded-md hover:bg-slate-100"
-                                            disabled={submitting || deleting}
+                                            disabled={deleting}
                                         >
                                             Cancel
                                         </button>
