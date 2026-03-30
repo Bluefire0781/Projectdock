@@ -44,7 +44,6 @@ pub async fn update_leverancier(
                 "Leverancier not found".to_string(),
             ))?;
 
-    // Convert to ActiveModel
     let mut active_model: leverancier::ActiveModel = existing.into();
 
     if let Some(naam) = leverancier_naam {
@@ -63,7 +62,6 @@ pub async fn update_leverancier(
         active_model.account_id = Set(id);
     }
 
-    // Update and return
     active_model.update(db).await
 }
 

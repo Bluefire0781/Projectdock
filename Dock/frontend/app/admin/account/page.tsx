@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 
+//types
 type Account = {
     id: number;
     username: string;
@@ -16,6 +17,11 @@ type CreateAccountPayload = {
     role: string;
 };
 
+type PatchAccountPayload = {
+    username?: string | null;
+    email?: string | null;
+};
+
 export default function AccountsPage() {
     const [accounts, setAccounts] = useState<Account[]>([]);
     const [loading, setLoading] = useState(false);
@@ -26,6 +32,12 @@ export default function AccountsPage() {
     const [currentPage, setCurrentPage] = useState(1);
     const [searchQuery, setSearchQuery] = useState("");
     const [allAccounts, setAllAccounts] = useState<Account[]>([]);
+    const [showUpdateModal, setShowUpdateModal] = useState(false);
+    const [updateForm, setUpdateForm] = useState({
+        username: "",
+        email: "",
+    });
+    const [confirmingDelete, setConfirmingDelete] = useState(false);
 
     const ACCOUNTS_PER_PAGE = 10;
 
@@ -37,7 +49,6 @@ export default function AccountsPage() {
 
     const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
     const [showCreateModal, setShowCreateModal] = useState(false);
-    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
     const API_BASE =
         process.env.NEXT_PUBLIC_API_URL?.trim() || "http://localhost:8080";
@@ -137,16 +148,26 @@ export default function AccountsPage() {
         }
     }
 
-    function openDeleteConfirm(account: Account) {
+    function openUpdateModal(account: Account) {
         setSelectedAccount(account);
-        setShowDeleteConfirm(true);
+        setUpdateForm({
+            username: account.username,
+            email: account.email ?? "",
+        });
+        setShowUpdateModal(true);
+        setConfirmingDelete(false);
         setError(null);
         setSuccessMsg(null);
     }
 
-    function closeDeleteConfirm() {
+    function closeUpdateModal() {
+        setShowUpdateModal(false);
         setSelectedAccount(null);
-        setShowDeleteConfirm(false);
+        setUpdateForm({
+            username: "",
+            email: "",
+        });
+        setConfirmingDelete(false);
     }
 
     async function handleCreate(e: React.FormEvent) {
@@ -205,14 +226,61 @@ export default function AccountsPage() {
             }
 
             setSuccessMsg(`Account ${selectedAccount.username} deleted successfully.`);
-            closeDeleteConfirm();
+            closeUpdateModal();
             await fetchAccounts();
         } catch (err) {
             setError(err instanceof Error ? err.message : "Unknown error");
         } finally {
             setDeleting(false);
+            setConfirmingDelete(false);
         }
     }
+
+    async function handleUpdate(e: React.FormEvent) {
+        e.preventDefault();
+        if (!selectedAccount) return;
+
+        setSubmitting(true);
+        setError(null);
+        setSuccessMsg(null);
+
+        try {
+            const payload: PatchAccountPayload = {
+                username: updateForm.username.trim() || null,
+                email: updateForm.email.trim() || null,
+            };
+
+            // Prevent empty username
+            if (!payload.username) {
+                throw new Error("username is required.");
+            }
+
+            const res = await fetch(
+                `${API_BASE}/accounts/${selectedAccount.id}`,
+                {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload),
+                }
+            );
+
+            if (!res.ok) {
+                const text = await res.text();
+                throw new Error(`Update failed (${res.status}): ${text}`);
+            }
+
+            setSuccessMsg("Account updated successfully.");
+            closeUpdateModal();
+            await fetchAccounts();
+        } catch (err) {
+            setError(
+                err instanceof Error ? err.message : "Unknown error"
+            );
+        } finally {
+            setSubmitting(false);
+        }
+    }
+
     // Pagination logic
     const totalPages = Math.ceil(accounts.length / ACCOUNTS_PER_PAGE);
     const startIndex = (currentPage - 1) * ACCOUNTS_PER_PAGE;
@@ -252,7 +320,7 @@ export default function AccountsPage() {
                     </div>
 
                     <p className="text-xs text-slate-700 mb-4">
-                        Right click a row to delete an account.
+                        Click a row to edit or delete an account.
                     </p>
 
                     {loading ? (
@@ -284,10 +352,7 @@ export default function AccountsPage() {
                                             <tr
                                                 key={account.id}
                                                 className="hover:bg-slate-100 cursor-pointer"
-                                                onContextMenu={(e) => {
-                                                    e.preventDefault();
-                                                    openDeleteConfirm(account);
-                                                }}
+                                                onClick={() => openUpdateModal(account)}
                                             >
                                                 <td className="p-3 border-b border-slate-200">
                                                     {account.id}
@@ -452,43 +517,100 @@ export default function AccountsPage() {
                 </div>
             )}
 
-            {/* Delete Confirmation Modal */}
-            {showDeleteConfirm && selectedAccount && (
+            {/* Update Account Modal with delete functionality */}
+            {showUpdateModal && selectedAccount && (
                 <div
                     className="fixed inset-0 z-50 flex items-center justify-center p-4"
                     style={{ backgroundColor: "rgba(0, 0, 0, 0.4)" }}
-                    onClick={closeDeleteConfirm}
+                    onClick={closeUpdateModal}
                 >
                     <div
                         className="bg-white rounded-xl shadow-xl w-full max-w-md p-5"
-                        onClick={(e) => e.stopPropagation()}
+                        onClick={e => e.stopPropagation()}
                     >
-                        <h3 className="text-lg font-semibold text-red-600 mb-4">
-                            Delete Account?
+                        <h3 className="text-lg font-semibold text-[#013c59] mb-4">
+                            Update Account
                         </h3>
+                        <form onSubmit={handleUpdate} className="space-y-3">
+                            <input
+                                type="text"
+                                className={inputClass}
+                                placeholder="username"
+                                value={updateForm.username}
+                                onChange={e =>
+                                    setUpdateForm(s => ({
+                                        ...s,
+                                        username: e.target.value,
+                                    }))
+                                }
+                            />
+                            <input
+                                type="email"
+                                className={inputClass}
+                                placeholder="email (optional)"
+                                value={updateForm.email}
+                                onChange={e =>
+                                    setUpdateForm(s => ({
+                                        ...s,
+                                        email: e.target.value,
+                                    }))
+                                }
+                            />
+                            <div className="flex gap-2 pt-1">
+                                <button
+                                    type="button"
+                                    onClick={closeUpdateModal}
+                                    className="w-1/2 border border-slate-300 text-slate-700 py-2 rounded-md hover:bg-slate-100"
+                                    disabled={submitting || deleting}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={submitting || deleting}
+                                    className="w-1/2 bg-[#013c59] text-white py-2 rounded-md disabled:opacity-60"
+                                >
+                                    {submitting ? "Updating..." : "Update"}
+                                </button>
+                            </div>
+                        </form>
 
-                        <p className="text-slate-700 mb-6">
-                            Are you sure you want to delete account{" "}
-                            <strong>{selectedAccount.username}</strong>? This action
-                            cannot be undone.
-                        </p>
-
-                        <div className="flex gap-2">
-                            <button
-                                type="button"
-                                onClick={closeDeleteConfirm}
-                                className="w-1/2 border border-slate-300 text-slate-700 py-2 rounded-md hover:bg-slate-100"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                type="button"
-                                onClick={handleDelete}
-                                disabled={deleting}
-                                className="w-1/2 bg-red-600 text-white py-2 rounded-md hover:bg-red-700 disabled:opacity-60"
-                            >
-                                {deleting ? "Deleting..." : "Delete"}
-                            </button>
+                        <div className="mt-6">
+                            {!confirmingDelete ? (
+                                <button
+                                    type="button"
+                                    onClick={() => setConfirmingDelete(true)}
+                                    className="w-full bg-red-100 text-red-700 border border-red-300 rounded-md py-2 font-semibold hover:bg-red-200"
+                                    disabled={submitting || deleting}
+                                >
+                                    Delete Account
+                                </button>
+                            ) : (
+                                <div className="flex flex-col items-center gap-2">
+                                    <p className="text-red-700 mb-2 text-center">
+                                        Are you sure you want to delete <strong>{selectedAccount.username}</strong>?<br />
+                                        This cannot be undone.
+                                    </p>
+                                    <div className="flex gap-2 w-full">
+                                        <button
+                                            type="button"
+                                            onClick={() => setConfirmingDelete(false)}
+                                            className="w-1/2 border border-slate-300 text-slate-700 py-2 rounded-md hover:bg-slate-100"
+                                            disabled={submitting || deleting}
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={handleDelete}
+                                            disabled={deleting}
+                                            className="w-1/2 bg-red-600 text-white py-2 rounded-md hover:bg-red-700 disabled:opacity-60"
+                                        >
+                                            {deleting ? "Deleting..." : "Delete"}
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

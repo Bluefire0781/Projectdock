@@ -10,6 +10,12 @@ pub struct CreateAccount {
     pub role: Option<String>,
 }
 
+#[derive(Deserialize)]
+pub struct UpdateAccount {
+    pub username: Option<String>,
+    pub email: Option<String>,
+}
+
 #[derive(Serialize)]
 pub struct AccountResponse {
     pub id: i32,

@@ -13,8 +13,8 @@ fn hash_password(password: &str) -> Result<String, argon2::password_hash::Error>
     let argon2 = Argon2::default();
 
     Ok(argon2
-        .hash_password(password.as_bytes(), &salt)? // ← Same as docs
-        .to_string()) // ← Same as docs
+        .hash_password(password.as_bytes(), &salt)?
+        .to_string())
 }
 
 pub async fn create_account(
@@ -64,4 +64,29 @@ pub async fn find_one_account(
         .filter(account::Column::Id.eq(id))
         .one(db)
         .await
+}
+
+pub async fn update_account(
+    db: &DatabaseConnection,
+    id: i32,
+    username: Option<String>,
+    email: Option<String>,
+) -> Result<account::Model, sea_orm::DbErr> {
+    let existing = find_one_account(db, id)
+        .await?
+        .ok_or(sea_orm::DbErr::RecordNotFound(
+            "account not found".to_string(),
+        ))?;
+
+    let mut active_model: account::ActiveModel = existing.into();
+
+    if let Some(name) = username {
+        active_model.username = Set(name);
+    }
+
+    if let Some(email) = email {
+        active_model.email = Set(Some(email));
+    }
+
+    active_model.update(db).await
 }

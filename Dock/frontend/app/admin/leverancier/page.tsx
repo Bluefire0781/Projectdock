@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 
+// Types
 type Account = {
     id: number;
     username: string;
@@ -34,6 +35,7 @@ type PatchLeverancierPayload = {
 };
 
 export default function Home() {
+    // State
     const [leveranciers, setLeveranciers] = useState<Leverancier[]>([]);
     const [accountsList, setAccountsList] = useState<Account[]>([]);
     const [loading, setLoading] = useState(false);
@@ -46,8 +48,14 @@ export default function Home() {
     const [searchQuery, setSearchQuery] = useState("");
     const [allLeveranciers, setAllLeveranciers] = useState<Leverancier[]>([]);
 
-    const ACCOUNTS_PER_PAGE = 10;
+    const [showCreateModal, setShowCreateModal] = useState(false);
 
+    // Edit modal/delete confirm state
+    const [selectedLeverancier, setSelectedLeverancier] = useState<Leverancier | null>(null);
+    const [confirmingDelete, setConfirmingDelete] = useState(false);
+
+    // Form state
+    const ACCOUNTS_PER_PAGE = 10;
     const [form, setForm] = useState({
         leverancier_id: "",
         leverancier_naam: "",
@@ -56,13 +64,10 @@ export default function Home() {
         account_id: "",
         account_search: "",
     });
-
     const [filteredAccounts, setFilteredAccounts] = useState<Account[]>([]);
     const [showAccountDropdown, setShowAccountDropdown] = useState(false);
 
-    const [selectedLeverancier, setSelectedLeverancier] = useState<Leverancier | null>(null);
-    const [showCreateModal, setShowCreateModal] = useState(false);
-    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    // Edit form state
     const [editForm, setEditForm] = useState({
         leverancier_naam: "",
         transporteur: "",
@@ -70,16 +75,10 @@ export default function Home() {
         account_id: "",
         account_search: "",
     });
-
     const [filteredEditAccounts, setFilteredEditAccounts] = useState<Account[]>([]);
     const [showEditAccountDropdown, setShowEditAccountDropdown] = useState(false);
 
-    const API_BASE =
-        process.env.NEXT_PUBLIC_API_URL?.trim() || "http://localhost:8080";
-
-    const inputClass =
-        "w-full border border-slate-300 rounded-md px-3 py-2 text-gray-700 placeholder:text-gray-400 focus:text-black focus:border-black focus:outline-none focus:ring-2 focus:ring-[#013c59]/30";
-
+    // Refs for form focus
     const fieldRefs = {
         leverancier_id: useRef<HTMLInputElement>(null),
         leverancier_naam: useRef<HTMLInputElement>(null),
@@ -88,6 +87,11 @@ export default function Home() {
         account_search: useRef<HTMLInputElement>(null),
     };
 
+    const API_BASE = process.env.NEXT_PUBLIC_API_URL?.trim() || "http://localhost:8080";
+    const inputClass =
+        "w-full border border-slate-300 rounded-md px-3 py-2 text-gray-700 placeholder:text-gray-400 focus:text-black focus:border-black focus:outline-none focus:ring-2 focus:ring-[#013c59]/30";
+
+    // Fetchers
     async function fetchLeveranciers() {
         setLoading(true);
         setError(null);
@@ -95,12 +99,10 @@ export default function Home() {
 
         try {
             const res = await fetch(`${API_BASE}/leveranciers`, { method: "GET" });
-
             if (!res.ok) {
                 const text = await res.text();
                 throw new Error(`Failed to fetch leveranciers (${res.status}): ${text}`);
             }
-
             const data = (await res.json()) as Leverancier[];
 
             // Fetch all accounts to map IDs to usernames
@@ -109,7 +111,6 @@ export default function Home() {
                 const accountsData = (await accountsRes.json()) as Account[];
                 setAccountsList(accountsData);
 
-                // Map account_id to account_username
                 const enrichedData = data.map((leverancier) => ({
                     ...leverancier,
                     account_username: accountsData.find((acc) => acc.id === leverancier.account_id)?.username || "Unknown",
@@ -130,6 +131,11 @@ export default function Home() {
         }
     }
 
+    useEffect(() => {
+        fetchLeveranciers();
+    }, []);
+
+    // Form Logic
     function handleSearchChange(query: string) {
         setSearchQuery(query);
         setCurrentPage(1);
@@ -140,104 +146,46 @@ export default function Home() {
         }
 
         const queryLower = query.toLowerCase();
-        const filtered = allLeveranciers.filter((lev) =>
-            lev.leverancier_id.toLowerCase().includes(queryLower) ||
-            lev.leverancier_naam?.toLowerCase().includes(queryLower)
+        setLeveranciers(
+            allLeveranciers.filter((lev) =>
+                lev.leverancier_id.toLowerCase().includes(queryLower) ||
+                lev.leverancier_naam?.toLowerCase().includes(queryLower)
+            ),
         );
-        setLeveranciers(filtered);
     }
 
     function handleAccountSearch(query: string) {
         setForm((s) => ({ ...s, account_search: query }));
-
         if (query.trim() === "") {
             setFilteredAccounts([]);
             setShowAccountDropdown(false);
             return;
         }
-
         const queryLower = query.toLowerCase();
-        const filtered = accountsList.filter((acc) =>
-            acc.username.toLowerCase().includes(queryLower)
-        );
-        setFilteredAccounts(filtered);
+        setFilteredAccounts(accountsList.filter((acc) => acc.username.toLowerCase().includes(queryLower)));
         setShowAccountDropdown(true);
     }
-
     function handleEditAccountSearch(query: string) {
         setEditForm((s) => ({ ...s, account_search: query }));
-
         if (query.trim() === "") {
             setFilteredEditAccounts([]);
             setShowEditAccountDropdown(false);
             return;
         }
-
         const queryLower = query.toLowerCase();
-        const filtered = accountsList.filter((acc) =>
-            acc.username.toLowerCase().includes(queryLower)
-        );
-        setFilteredEditAccounts(filtered);
+        setFilteredEditAccounts(accountsList.filter((acc) => acc.username.toLowerCase().includes(queryLower)));
         setShowEditAccountDropdown(true);
     }
-
     function selectAccount(account: Account) {
-        setForm((s) => ({
-            ...s,
-            account_id: String(account.id),
-            account_search: account.username,
-        }));
+        setForm((s) => ({ ...s, account_id: String(account.id), account_search: account.username }));
         setShowAccountDropdown(false);
     }
-
     function selectEditAccount(account: Account) {
-        setEditForm((s) => ({
-            ...s,
-            account_id: String(account.id),
-            account_search: account.username,
-        }));
+        setEditForm((s) => ({ ...s, account_id: String(account.id), account_search: account.username }));
         setShowEditAccountDropdown(false);
     }
 
-    useEffect(() => {
-        fetchLeveranciers();
-    }, []);
-
-    function openCreateModal() {
-        setShowCreateModal(true);
-        setError(null);
-        setSuccessMsg(null);
-        setForm({
-            leverancier_id: "",
-            leverancier_naam: "",
-            transporteur: "",
-            ppu: "",
-            account_id: "",
-            account_search: "",
-        });
-        setFilteredAccounts([]);
-        setShowAccountDropdown(false);
-        setTimeout(() => fieldRefs.leverancier_id.current?.focus(), 0);
-    }
-
-    function closeCreateModal() {
-        setShowCreateModal(false);
-        setForm({
-            leverancier_id: "",
-            leverancier_naam: "",
-            transporteur: "",
-            ppu: "",
-            account_id: "",
-            account_search: "",
-        });
-        setFilteredAccounts([]);
-        setShowAccountDropdown(false);
-    }
-
-    function handleCreateKeyDown(
-        e: React.KeyboardEvent<HTMLInputElement>,
-        field: string
-    ) {
+    function handleCreateKeyDown(e: React.KeyboardEvent<HTMLInputElement>, field: string) {
         if (e.key === "Enter") {
             e.preventDefault();
             const fieldOrder = [
@@ -259,6 +207,36 @@ export default function Home() {
         }
     }
 
+    function openCreateModal() {
+        setShowCreateModal(true);
+        setError(null);
+        setSuccessMsg(null);
+        setForm({
+            leverancier_id: "",
+            leverancier_naam: "",
+            transporteur: "",
+            ppu: "",
+            account_id: "",
+            account_search: "",
+        });
+        setFilteredAccounts([]);
+        setShowAccountDropdown(false);
+        setTimeout(() => fieldRefs.leverancier_id.current?.focus(), 0);
+    }
+    function closeCreateModal() {
+        setShowCreateModal(false);
+        setForm({
+            leverancier_id: "",
+            leverancier_naam: "",
+            transporteur: "",
+            ppu: "",
+            account_id: "",
+            account_search: "",
+        });
+        setFilteredAccounts([]);
+        setShowAccountDropdown(false);
+    }
+
     function openEditModal(leverancier: Leverancier) {
         setSelectedLeverancier(leverancier);
         setEditForm({
@@ -270,10 +248,10 @@ export default function Home() {
         });
         setFilteredEditAccounts([]);
         setShowEditAccountDropdown(false);
+        setConfirmingDelete(false);
         setError(null);
         setSuccessMsg(null);
     }
-
     function closeEditModal() {
         setSelectedLeverancier(null);
         setEditForm({
@@ -285,20 +263,10 @@ export default function Home() {
         });
         setFilteredEditAccounts([]);
         setShowEditAccountDropdown(false);
+        setConfirmingDelete(false);
     }
 
-    function openDeleteConfirm(leverancier: Leverancier) {
-        setSelectedLeverancier(leverancier);
-        setShowDeleteConfirm(true);
-        setError(null);
-        setSuccessMsg(null);
-    }
-
-    function closeDeleteConfirm() {
-        setSelectedLeverancier(null);
-        setShowDeleteConfirm(false);
-    }
-
+    // CRUD Operations
     async function handleCreate(e: React.FormEvent) {
         e.preventDefault();
         setSubmitting(true);
@@ -313,7 +281,6 @@ export default function Home() {
             if (!form.account_id) {
                 throw new Error("Account is required.");
             }
-
             const payload: CreateLeverancierPayload = {
                 leverancier_id,
                 leverancier_naam: form.leverancier_naam.trim() === "" ? null : form.leverancier_naam.trim(),
@@ -321,7 +288,6 @@ export default function Home() {
                 ppu,
                 account_id,
             };
-
             if (!Number.isFinite(payload.ppu)) {
                 throw new Error("ppu must be a valid number.");
             }
@@ -349,7 +315,6 @@ export default function Home() {
 
     async function handlePatch(e: React.FormEvent) {
         e.preventDefault();
-
         if (!selectedLeverancier) return;
 
         setUpdating(true);
@@ -389,14 +354,11 @@ export default function Home() {
                 return;
             }
 
-            const res = await fetch(
-                `${API_BASE}/leveranciers/${selectedLeverancier.leverancier_id}`,
-                {
-                    method: "PATCH",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(payload),
-                }
-            );
+            const res = await fetch(`${API_BASE}/leveranciers/${selectedLeverancier.leverancier_id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+            });
 
             if (!res.ok) {
                 const text = await res.text();
@@ -420,12 +382,9 @@ export default function Home() {
         setError(null);
 
         try {
-            const res = await fetch(
-                `${API_BASE}/leveranciers/${selectedLeverancier.leverancier_id}`,
-                {
-                    method: "DELETE",
-                }
-            );
+            const res = await fetch(`${API_BASE}/leveranciers/${selectedLeverancier.leverancier_id}`, {
+                method: "DELETE",
+            });
 
             if (!res.ok) {
                 const text = await res.text();
@@ -433,12 +392,13 @@ export default function Home() {
             }
 
             setSuccessMsg(`Leverancier ${selectedLeverancier.leverancier_id} deleted successfully.`);
-            closeDeleteConfirm();
+            closeEditModal();
             await fetchLeveranciers();
         } catch (err) {
             setError(err instanceof Error ? err.message : "Unknown error");
         } finally {
             setDeleting(false);
+            setConfirmingDelete(false);
         }
     }
 
@@ -448,6 +408,7 @@ export default function Home() {
     const endIndex = startIndex + ACCOUNTS_PER_PAGE;
     const paginatedLeveranciers = leveranciers.slice(startIndex, endIndex);
 
+    // Render
     return (
         <main className="flex-1 px-4 sm:px-6 lg:px-8 py-8 bg-slate-100">
             <div className="mx-auto max-w-6xl">
@@ -481,7 +442,7 @@ export default function Home() {
                     </div>
 
                     <p className="text-xs text-slate-700 mb-4">
-                        Left click a row to update. Right click to delete.
+                        Click a row to edit or delete.
                     </p>
 
                     {loading ? (
@@ -507,10 +468,6 @@ export default function Home() {
                                                 key={lev.leverancier_id}
                                                 className="hover:bg-slate-100 cursor-pointer"
                                                 onClick={() => openEditModal(lev)}
-                                                onContextMenu={(e) => {
-                                                    e.preventDefault();
-                                                    openDeleteConfirm(lev);
-                                                }}
                                             >
                                                 <td className="p-3 border-b border-slate-200">{lev.leverancier_id}</td>
                                                 <td className="p-3 border-b border-slate-200">{lev.leverancier_naam ?? "-"}</td>
@@ -524,7 +481,6 @@ export default function Home() {
                                     </tbody>
                                 </table>
                             </div>
-
                             {/* Pagination Controls */}
                             <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-300">
                                 <p className="text-sm text-slate-700">
@@ -675,8 +631,8 @@ export default function Home() {
                 </div>
             )}
 
-            {/* Edit Modal */}
-            {selectedLeverancier && !showDeleteConfirm && (
+            {/* Edit Modal (with inline delete) */}
+            {selectedLeverancier && (
                 <div
                     className="fixed inset-0 z-50 flex items-center justify-center p-4"
                     style={{ backgroundColor: "rgba(0, 0, 0, 0.4)" }}
@@ -747,58 +703,59 @@ export default function Home() {
                                     type="button"
                                     onClick={closeEditModal}
                                     className="w-1/2 border border-slate-300 text-slate-700 py-2 rounded-md hover:bg-slate-100"
+                                    disabled={updating || deleting}
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     type="submit"
-                                    disabled={updating}
+                                    disabled={updating || deleting}
                                     className="w-1/2 bg-[#013c59] text-white py-2 rounded-md disabled:opacity-60"
                                 >
                                     {updating ? "Updating..." : "Save"}
                                 </button>
                             </div>
                         </form>
-                    </div>
-                </div>
-            )}
 
-            {/* Delete Confirmation Modal */}
-            {showDeleteConfirm && selectedLeverancier && (
-                <div
-                    className="fixed inset-0 z-50 flex items-center justify-center p-4"
-                    style={{ backgroundColor: "rgba(0, 0, 0, 0.4)" }}
-                    onClick={closeDeleteConfirm}
-                >
-                    <div
-                        className="bg-white rounded-xl shadow-xl w-full max-w-md p-5"
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <h3 className="text-lg font-semibold text-red-600 mb-4">
-                            Delete Leverancier?
-                        </h3>
-
-                        <p className="text-slate-700 mb-6">
-                            Are you sure you want to delete leverancier <strong>{selectedLeverancier.leverancier_id}</strong>? This action cannot be undone.
-                        </p>
-
-                        <div className="flex gap-2">
-                            <button
-                                type="button"
-                                onClick={closeDeleteConfirm}
-                                className="w-1/2 border border-slate-300 text-slate-700 py-2 rounded-md hover:bg-slate-100"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                type="button"
-                                onClick={handleDelete}
-                                disabled={deleting}
-                                className="w-1/2 bg-red-600 text-white py-2 rounded-md hover:bg-red-700 disabled:opacity-60"
-                            >
-                                {deleting ? "Deleting..." : "Delete"}
-                            </button>
+                        {/* Inline Delete in Edit Modal */}
+                        <div className="mt-6">
+                            {!confirmingDelete ? (
+                                <button
+                                    type="button"
+                                    onClick={() => setConfirmingDelete(true)}
+                                    className="w-full bg-red-100 text-red-700 border border-red-300 rounded-md py-2 font-semibold hover:bg-red-200"
+                                    disabled={updating || deleting}
+                                >
+                                    Delete Leverancier
+                                </button>
+                            ) : (
+                                <div className="flex flex-col items-center gap-2">
+                                    <p className="text-red-700 mb-2 text-center">
+                                        Are you sure you want to delete <strong>{selectedLeverancier.leverancier_id}</strong>?<br />
+                                        This cannot be undone.
+                                    </p>
+                                    <div className="flex gap-2 w-full">
+                                        <button
+                                            type="button"
+                                            onClick={() => setConfirmingDelete(false)}
+                                            className="w-1/2 border border-slate-300 text-slate-700 py-2 rounded-md hover:bg-slate-100"
+                                            disabled={deleting}
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={handleDelete}
+                                            disabled={deleting}
+                                            className="w-1/2 bg-red-600 text-white py-2 rounded-md hover:bg-red-700 disabled:opacity-60"
+                                        >
+                                            {deleting ? "Deleting..." : "Delete"}
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
                         </div>
+                        {/* End inline delete */}
                     </div>
                 </div>
             )}

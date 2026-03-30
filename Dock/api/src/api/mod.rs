@@ -24,6 +24,7 @@ pub fn router() -> Router<AppState> {
         .route("/accounts", post(account_api::create_account))
         .route("/accounts/{id}", delete(account_api::delete_account))
         .route("/accounts/{id}", get(account_api::find_account))
+        .route("/accounts/{id}", patch(account_api::update_account))
         //leverancier
         .route("/leveranciers", post(leverancier_api::create_leverancier))
         .route("/leveranciers", get(leverancier_api::find_all))
@@ -32,7 +33,7 @@ pub fn router() -> Router<AppState> {
             delete(leverancier_api::delete_leverancier),
         )
         .route(
-            "/leverancier/{leverancier_id}",
+            "/leveranciers/{leverancier_id}",
             get(leverancier_api::find_leverancier),
         )
         .route(
