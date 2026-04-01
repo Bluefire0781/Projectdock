@@ -24,6 +24,12 @@ pub struct AccountResponse {
     pub role: Option<String>,
 }
 
+#[derive(Deserialize)]
+pub struct Login {
+    pub username: String,
+    pub password: String,
+}
+
 //============Model=============//
 #[sea_orm::model]
 #[derive(DeriveEntityModel, Serialize, Debug, Clone, PartialEq, Eq, Default)]
