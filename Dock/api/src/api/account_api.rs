@@ -112,3 +112,15 @@ pub async fn update_account(
 
     Ok((StatusCode::OK, Json(response)))
 }
+
+pub async fn log_in(
+    State(state): State<AppState>,
+    Json(payload): Json<Login>,
+) -> Result<StatusCode, StatusCode> {
+    let result = account_service::log_in(&state.db, payload.username, payload.password).await;
+
+    match result {
+        Ok(_) => Ok(StatusCode::OK),
+        Err(_) => Err(StatusCode::UNAUTHORIZED),
+    }
+}

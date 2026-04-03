@@ -1,11 +1,17 @@
 use crate::models::account;
 use argon2::{
     Argon2,
-    password_hash::{PasswordHasher, SaltString, rand_core::OsRng},
+    password_hash::{PasswordHash, PasswordHasher, PasswordVerifier, SaltString, rand_core::OsRng},
 };
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, DatabaseConnection, DeleteResult, EntityTrait, QueryFilter, Set,
 };
+
+// login errors
+pub enum LoginError {
+    InvalidCredentials,
+    DatabaseError,
+}
 
 // Helper function to hash password
 fn hash_password(password: &str) -> Result<String, argon2::password_hash::Error> {
@@ -17,6 +23,34 @@ fn hash_password(password: &str) -> Result<String, argon2::password_hash::Error>
         .to_string())
 }
 
+pub async fn verify_password(
+    stored_hash: &str,
+    password: &str,
+) -> Result<(), argon2::password_hash::Error> {
+    let parsed_hash = PasswordHash::new(stored_hash)?;
+    Argon2::default().verify_password(password.as_bytes(), &parsed_hash)
+}
+
+//login services
+pub async fn log_in(
+    db: &DatabaseConnection,
+    username: String,
+    password: String,
+) -> Result<(), LoginError> {
+    let account_opt = find_by_user(db, &username)
+        .await
+        .map_err(|_| LoginError::DatabaseError)?;
+
+    let account = account_opt.ok_or(LoginError::InvalidCredentials)?;
+
+    if verify_password(&account.password, &password).await.is_ok() {
+        Ok(())
+    } else {
+        Err(LoginError::InvalidCredentials)
+    }
+}
+
+//account services
 pub async fn create_account(
     db: &DatabaseConnection,
     username: String,
@@ -62,6 +96,16 @@ pub async fn find_one_account(
 ) -> Result<Option<account::Model>, sea_orm::DbErr> {
     account::Entity::find()
         .filter(account::Column::Id.eq(id))
+        .one(db)
+        .await
+}
+
+pub async fn find_by_user(
+    db: &DatabaseConnection,
+    name: &str,
+) -> Result<Option<account::Model>, sea_orm::DbErr> {
+    account::Entity::find()
+        .filter(account::Column::Username.eq(name))
         .one(db)
         .await
 }

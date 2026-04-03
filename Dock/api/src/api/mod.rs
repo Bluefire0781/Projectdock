@@ -19,6 +19,8 @@ pub fn router() -> Router<AppState> {
         .route("/", get(root))
         .route("/users", post(users::create_user))
         .route("/add", get(add))
+        //login
+        .route("/login", post(account_api::log_in))
         //account
         .route("/accounts", get(account_api::find_all))
         .route("/accounts", post(account_api::create_account))
