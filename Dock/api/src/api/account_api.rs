@@ -1,23 +1,27 @@
-use crate::models::{AccountResponse, CreateAccount, Login, UpdateAccount};
-use crate::service::account_service;
+use crate::models::{AccountResponse, CreateAccount, JWT, Login, MeResponse, UpdateAccount};
+use crate::service::{account_service, jwt_service};
 use crate::state::AppState;
 use axum::{
     Json,
     extract::{Path, State},
-    http::StatusCode,
+    http::{HeaderMap, HeaderValue, StatusCode, header},
+    response::IntoResponse,
 };
 
+//admin
 pub async fn create_account(
     State(state): State<AppState>,
+    headers: HeaderMap,
     Json(payload): Json<CreateAccount>,
 ) -> Result<(StatusCode, Json<AccountResponse>), StatusCode> {
-    let role = payload.role.unwrap_or_else(|| "user".to_string());
+    jwt_service::require_role(&headers, &state.jwt_secret, &["admin"][..])?;
+    let role: String = payload.role.unwrap_or_else(|| "user".to_string());
     let account = account_service::create_account(
         &state.db,
         payload.username,
         payload.password,
         payload.email,
-        Some(role),
+        role,
     )
     .await
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -34,7 +38,9 @@ pub async fn create_account(
 
 pub async fn find_all(
     State(state): State<AppState>,
+    headers: HeaderMap,
 ) -> Result<(StatusCode, Json<Vec<AccountResponse>>), StatusCode> {
+    jwt_service::require_role(&headers, &state.jwt_secret, &["admin"][..])?;
     let accounts = account_service::find_all(&state.db).await.map_err(|e| {
         eprintln!("DB ERROR: {:?}", e);
         StatusCode::INTERNAL_SERVER_ERROR
@@ -55,8 +61,10 @@ pub async fn find_all(
 
 pub async fn find_account(
     State(state): State<AppState>,
+    headers: HeaderMap,
     Path(id): Path<i32>,
 ) -> Result<Json<AccountResponse>, StatusCode> {
+    jwt_service::require_role(&headers, &state.jwt_secret, &["admin"][..])?;
     let account = account_service::find_one_account(&state.db, id)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
@@ -72,8 +80,11 @@ pub async fn find_account(
 
 pub async fn delete_account(
     State(state): State<AppState>,
+    headers: HeaderMap,
     Path(id): Path<i32>,
 ) -> Result<(StatusCode, Json<AccountResponse>), StatusCode> {
+    jwt_service::require_role(&headers, &state.jwt_secret, &["admin"][..])?;
+
     let account = account_service::find_one_account(&state.db, id)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
@@ -97,8 +108,10 @@ pub async fn delete_account(
 pub async fn update_account(
     State(state): State<AppState>,
     Path(id): Path<i32>,
+    headers: HeaderMap,
     Json(payload): Json<UpdateAccount>,
 ) -> Result<(StatusCode, Json<AccountResponse>), StatusCode> {
+    jwt_service::require_role(&headers, &state.jwt_secret, &["admin"][..])?;
     let updated = account_service::update_account(&state.db, id, payload.username, payload.email)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -113,14 +126,54 @@ pub async fn update_account(
     Ok((StatusCode::OK, Json(response)))
 }
 
+// guest
 pub async fn log_in(
     State(state): State<AppState>,
     Json(payload): Json<Login>,
-) -> Result<StatusCode, StatusCode> {
-    let result = account_service::log_in(&state.db, payload.username, payload.password).await;
+) -> Result<impl IntoResponse, StatusCode> {
+    let result = account_service::log_in(
+        &state.db,
+        payload.username,
+        payload.password,
+        &state.jwt_secret,
+    )
+    .await;
 
     match result {
-        Ok(_) => Ok(StatusCode::OK),
+        Ok(token) => {
+            // add Secure when using HTTPS in production
+            let cookie = format!(
+                "token={}; HttpOnly; Path=/; Max-Age={}; SameSite=Lax",
+                token,
+                60 * 60 * 24
+            );
+
+            let set_cookie =
+                HeaderValue::from_str(&cookie).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+            Ok((
+                StatusCode::OK,
+                [(header::SET_COOKIE, set_cookie)],
+                Json(JWT { token }),
+            ))
+        }
         Err(_) => Err(StatusCode::UNAUTHORIZED),
     }
+}
+
+// any account
+pub async fn me(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+) -> Result<(StatusCode, Json<MeResponse>), StatusCode> {
+    let claims = jwt_service::me(&headers, &state.jwt_secret)?;
+
+    Ok((
+        StatusCode::OK,
+        Json(MeResponse {
+            id: claims.sub,
+            username: claims.username,
+            role: claims.role,
+        }),
+    ))
 }

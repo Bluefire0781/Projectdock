@@ -9,5 +9,7 @@
 **/*.dll
 **/*.exe
 
+.env
+.env.local
 
 

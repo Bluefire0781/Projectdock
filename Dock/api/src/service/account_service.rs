@@ -1,53 +1,29 @@
+use crate::errors::LoginError;
 use crate::models::account;
-use argon2::{
-    Argon2,
-    password_hash::{PasswordHash, PasswordHasher, PasswordVerifier, SaltString, rand_core::OsRng},
-};
+use crate::service::hasher_service::{hash_password, verify_password};
+use crate::service::jwt_service::create_jwt;
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, DatabaseConnection, DeleteResult, EntityTrait, QueryFilter, Set,
 };
-
-// login errors
-pub enum LoginError {
-    InvalidCredentials,
-    DatabaseError,
-}
-
-// Helper function to hash password
-fn hash_password(password: &str) -> Result<String, argon2::password_hash::Error> {
-    let salt = SaltString::generate(&mut OsRng);
-    let argon2 = Argon2::default();
-
-    Ok(argon2
-        .hash_password(password.as_bytes(), &salt)?
-        .to_string())
-}
-
-pub async fn verify_password(
-    stored_hash: &str,
-    password: &str,
-) -> Result<(), argon2::password_hash::Error> {
-    let parsed_hash = PasswordHash::new(stored_hash)?;
-    Argon2::default().verify_password(password.as_bytes(), &parsed_hash)
-}
 
 //login services
 pub async fn log_in(
     db: &DatabaseConnection,
     username: String,
     password: String,
-) -> Result<(), LoginError> {
+    jwt_secret: &str,
+) -> Result<String, LoginError> {
     let account_opt = find_by_user(db, &username)
         .await
         .map_err(|_| LoginError::DatabaseError)?;
 
     let account = account_opt.ok_or(LoginError::InvalidCredentials)?;
 
-    if verify_password(&account.password, &password).await.is_ok() {
-        Ok(())
-    } else {
-        Err(LoginError::InvalidCredentials)
+    if verify_password(&account.password, &password).await.is_err() {
+        return Err(LoginError::InvalidCredentials);
     }
+
+    create_jwt(account.id, &account.username, &account.role, jwt_secret)
 }
 
 //account services
@@ -56,10 +32,11 @@ pub async fn create_account(
     username: String,
     password: String,
     email: Option<String>,
-    role: Option<String>,
+    role: String,
 ) -> Result<account::Model, sea_orm::DbErr> {
-    let hashed_password =
-        hash_password(&password).map_err(|e| sea_orm::DbErr::Custom(e.to_string()))?;
+    let hashed_password = hash_password(&password)
+        .await
+        .map_err(|e| sea_orm::DbErr::Custom(e.to_string()))?;
 
     let new_account = account::ActiveModel {
         username: Set(username),

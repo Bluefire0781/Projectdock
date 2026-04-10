@@ -21,7 +21,7 @@ pub struct AccountResponse {
     pub id: i32,
     pub username: String,
     pub email: Option<String>,
-    pub role: Option<String>,
+    pub role: String,
 }
 
 #[derive(Deserialize)]
@@ -41,7 +41,7 @@ pub struct Model {
     pub username: String,
     pub password: String,
     pub email: Option<String>,
-    pub role: Option<String>,
+    pub role: String,
     #[sea_orm(has_many)]
     pub leverancier: HasMany<super::leverancier::Entity>,
 }

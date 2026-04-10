@@ -19,9 +19,9 @@ export default function Home() {
                         </nav>
 
                         {/* Login Button */}
-                        <button className="bg-[#b5b500] text-[#013c59] font-semibold px-4 py-2 rounded-md hover:opacity-90 transition">
+                        <a href="/login" className="bg-[#b5b500] text-[#013c59] font-semibold px-4 py-2 rounded-md hover:opacity-90 transition">
                             Login
-                        </button>
+                        </a>
                     </div>
                 </div>
             </header>

@@ -1,8 +1,10 @@
+use dotenvy::dotenv;
 use migration::MigratorTrait;
 use std::net::SocketAddr;
 
 mod api;
 mod db;
+mod errors;
 mod models;
 mod service;
 mod state;
@@ -11,14 +13,22 @@ mod state;
 async fn main() {
     tracing_subscriber::fmt::init();
 
+    dotenv().ok();
+
+    let db_secret: String = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
     // Connect to database at startup
-    let db = db::connect().await.expect("Failed to connect to database");
+    let db = db::connect(db_secret)
+        .await
+        .expect("Failed to connect to database");
 
     //migration up
     let _ = migration::Migrator::up(&db, None).await;
 
+    // jwt secret
+    let jwt_secret = std::env::var("JWT_SECRET").expect("JWT_SECRET must be set");
+
     //db state
-    let app_state = state::AppState { db };
+    let app_state = state::AppState { db, jwt_secret };
 
     // Create router with state
     let app = api::router().with_state(app_state);
