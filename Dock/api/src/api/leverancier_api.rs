@@ -1,16 +1,18 @@
 use crate::models::{CreateLeverancier, LeverancierResponse, UpdateLeverancier};
-use crate::service::leverancier_service;
+use crate::service::{jwt_service, leverancier_service};
 use crate::state::AppState;
 use axum::{
     Json,
     extract::{Path, State},
-    http::StatusCode,
+    http::{HeaderMap, StatusCode},
 };
 
 pub async fn create_leverancier(
     State(state): State<AppState>,
+    headers: HeaderMap,
     Json(payload): Json<CreateLeverancier>,
 ) -> Result<(StatusCode, Json<LeverancierResponse>), StatusCode> {
+    jwt_service::require_role(&headers, &state.jwt_secret, &["admin"][..])?;
     let leverancier = leverancier_service::create_leverancier(
         &state.db,
         payload.leverancier_id,
@@ -35,7 +37,9 @@ pub async fn create_leverancier(
 
 pub async fn find_all(
     State(state): State<AppState>,
+    headers: HeaderMap,
 ) -> Result<(StatusCode, Json<Vec<LeverancierResponse>>), StatusCode> {
+    jwt_service::require_role(&headers, &state.jwt_secret, &["admin"][..])?;
     let leveranciers = leverancier_service::find_all(&state.db)
         .await
         .map_err(|e| {
@@ -59,8 +63,10 @@ pub async fn find_all(
 
 pub async fn find_leverancier(
     State(state): State<AppState>,
+    headers: HeaderMap,
     Path(leverancier_id): Path<String>,
 ) -> Result<Json<LeverancierResponse>, StatusCode> {
+    jwt_service::require_role(&headers, &state.jwt_secret, &["admin"][..])?;
     let leverancier = leverancier_service::find_by_one(&state.db, &leverancier_id)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
@@ -77,8 +83,10 @@ pub async fn find_leverancier(
 
 pub async fn delete_leverancier(
     State(state): State<AppState>,
+    headers: HeaderMap,
     Path(leverancier_id): Path<String>,
 ) -> Result<StatusCode, StatusCode> {
+    jwt_service::require_role(&headers, &state.jwt_secret, &["admin"][..])?;
     let result = leverancier_service::delete_leverancier(&state.db, leverancier_id)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -93,8 +101,10 @@ pub async fn delete_leverancier(
 pub async fn update_leverancier(
     State(state): State<AppState>,
     Path(leverancier_id): Path<String>,
+    headers: HeaderMap,
     Json(payload): Json<UpdateLeverancier>,
 ) -> Result<(StatusCode, Json<LeverancierResponse>), StatusCode> {
+    jwt_service::require_role(&headers, &state.jwt_secret, &["admin"][..])?;
     let updated = leverancier_service::update_leverancier(
         &state.db,
         leverancier_id,

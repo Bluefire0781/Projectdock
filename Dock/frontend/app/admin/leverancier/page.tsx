@@ -98,7 +98,10 @@ export default function Home() {
         setSearchQuery("");
 
         try {
-            const res = await fetch(`${API_BASE}/leveranciers`, { method: "GET" });
+            const res = await fetch(`${API_BASE}/leveranciers`, {
+                method: "GET",
+                credentials: "include",
+            });
             if (!res.ok) {
                 const text = await res.text();
                 throw new Error(`Failed to fetch leveranciers (${res.status}): ${text}`);
@@ -106,14 +109,18 @@ export default function Home() {
             const data = (await res.json()) as Leverancier[];
 
             // Fetch all accounts to map IDs to usernames
-            const accountsRes = await fetch(`${API_BASE}/accounts`, { method: "GET" });
+            const accountsRes = await fetch(`${API_BASE}/accounts`, {
+                method: "GET",
+                credentials: "include",
+            });
             if (accountsRes.ok) {
                 const accountsData = (await accountsRes.json()) as Account[];
                 setAccountsList(accountsData);
 
                 const enrichedData = data.map((leverancier) => ({
                     ...leverancier,
-                    account_username: accountsData.find((acc) => acc.id === leverancier.account_id)?.username || "Unknown",
+                    account_username:
+                        accountsData.find((acc) => acc.id === leverancier.account_id)?.username || "Unknown",
                 }));
 
                 setAllLeveranciers(enrichedData);
@@ -147,10 +154,11 @@ export default function Home() {
 
         const queryLower = query.toLowerCase();
         setLeveranciers(
-            allLeveranciers.filter((lev) =>
-                lev.leverancier_id.toLowerCase().includes(queryLower) ||
-                lev.leverancier_naam?.toLowerCase().includes(queryLower)
-            ),
+            allLeveranciers.filter(
+                (lev) =>
+                    lev.leverancier_id.toLowerCase().includes(queryLower) ||
+                    lev.leverancier_naam?.toLowerCase().includes(queryLower)
+            )
         );
     }
 
@@ -188,13 +196,7 @@ export default function Home() {
     function handleCreateKeyDown(e: React.KeyboardEvent<HTMLInputElement>, field: string) {
         if (e.key === "Enter") {
             e.preventDefault();
-            const fieldOrder = [
-                "leverancier_id",
-                "leverancier_naam",
-                "transporteur",
-                "ppu",
-                "account_search",
-            ];
+            const fieldOrder = ["leverancier_id", "leverancier_naam", "transporteur", "ppu", "account_search"];
             const currentIndex = fieldOrder.indexOf(field);
             const nextIndex = currentIndex + 1;
 
@@ -294,6 +296,7 @@ export default function Home() {
 
             const res = await fetch(`${API_BASE}/leveranciers`, {
                 method: "POST",
+                credentials: "include",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload),
             });
@@ -356,6 +359,7 @@ export default function Home() {
 
             const res = await fetch(`${API_BASE}/leveranciers/${selectedLeverancier.leverancier_id}`, {
                 method: "PATCH",
+                credentials: "include",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload),
             });
@@ -384,6 +388,7 @@ export default function Home() {
         try {
             const res = await fetch(`${API_BASE}/leveranciers/${selectedLeverancier.leverancier_id}`, {
                 method: "DELETE",
+                credentials: "include",
             });
 
             if (!res.ok) {
@@ -441,9 +446,7 @@ export default function Home() {
                         </div>
                     </div>
 
-                    <p className="text-xs text-slate-700 mb-4">
-                        Click a row to edit or delete.
-                    </p>
+                    <p className="text-xs text-slate-700 mb-4">Click a row to edit or delete.</p>
 
                     {loading ? (
                         <p className="text-slate-700">Loading...</p>
@@ -484,7 +487,8 @@ export default function Home() {
                             {/* Pagination Controls */}
                             <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-300">
                                 <p className="text-sm text-slate-700">
-                                    Showing {leveranciers.length > 0 ? startIndex + 1 : 0} to {Math.min(endIndex, leveranciers.length)} of {leveranciers.length} leveranciers
+                                    Showing {leveranciers.length > 0 ? startIndex + 1 : 0} to{" "}
+                                    {Math.min(endIndex, leveranciers.length)} of {leveranciers.length} leveranciers
                                 </p>
                                 <div className="flex gap-2">
                                     <button
@@ -500,8 +504,8 @@ export default function Home() {
                                                 key={page}
                                                 onClick={() => setCurrentPage(page)}
                                                 className={`px-3 py-1 rounded-md transition ${currentPage === page
-                                                    ? "bg-[#013c59] text-white"
-                                                    : "border border-[#013c59] text-[#013c59] hover:bg-[#013c59] hover:text-white"
+                                                        ? "bg-[#013c59] text-white"
+                                                        : "border border-[#013c59] text-[#013c59] hover:bg-[#013c59] hover:text-white"
                                                     }`}
                                             >
                                                 {page}
@@ -532,13 +536,8 @@ export default function Home() {
                     style={{ backgroundColor: "rgba(0, 0, 0, 0.4)" }}
                     onClick={closeCreateModal}
                 >
-                    <div
-                        className="bg-white rounded-xl shadow-xl w-full max-w-md p-5"
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <h3 className="text-lg font-semibold text-[#013c59] mb-4">
-                            Create Leverancier
-                        </h3>
+                    <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-5" onClick={(e) => e.stopPropagation()}>
+                        <h3 className="text-lg font-semibold text-[#013c59] mb-4">Create Leverancier</h3>
 
                         <form onSubmit={handleCreate} className="space-y-3">
                             <input
@@ -638,10 +637,7 @@ export default function Home() {
                     style={{ backgroundColor: "rgba(0, 0, 0, 0.4)" }}
                     onClick={closeEditModal}
                 >
-                    <div
-                        className="bg-white rounded-xl shadow-xl w-full max-w-md p-5"
-                        onClick={(e) => e.stopPropagation()}
-                    >
+                    <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-5" onClick={(e) => e.stopPropagation()}>
                         <h3 className="text-lg font-semibold text-[#013c59] mb-4">
                             Update #{selectedLeverancier.leverancier_id}
                         </h3>
@@ -731,7 +727,8 @@ export default function Home() {
                             ) : (
                                 <div className="flex flex-col items-center gap-2">
                                     <p className="text-red-700 mb-2 text-center">
-                                        Are you sure you want to delete <strong>{selectedLeverancier.leverancier_id}</strong>?<br />
+                                        Are you sure you want to delete <strong>{selectedLeverancier.leverancier_id}</strong>?
+                                        <br />
                                         This cannot be undone.
                                     </p>
                                     <div className="flex gap-2 w-full">
