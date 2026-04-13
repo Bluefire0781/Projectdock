@@ -8,7 +8,8 @@ use axum::{
     response::IntoResponse,
 };
 
-//admin
+//==============Admin===========//
+//admin create account func
 pub async fn create_account(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -36,6 +37,7 @@ pub async fn create_account(
     Ok((StatusCode::CREATED, Json(response)))
 }
 
+//admin find all func
 pub async fn find_all(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -59,6 +61,7 @@ pub async fn find_all(
     Ok((StatusCode::OK, Json(response)))
 }
 
+//admin find account func
 pub async fn find_account(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -78,6 +81,7 @@ pub async fn find_account(
     }))
 }
 
+//admin account delete func
 pub async fn delete_account(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -105,6 +109,7 @@ pub async fn delete_account(
     ))
 }
 
+//admin account update func
 pub async fn update_account(
     State(state): State<AppState>,
     Path(id): Path<i32>,
@@ -126,7 +131,8 @@ pub async fn update_account(
     Ok((StatusCode::OK, Json(response)))
 }
 
-// guest
+//=============ANY===========//
+// Login functionaliteit
 pub async fn log_in(
     State(state): State<AppState>,
     Json(payload): Json<Login>,
@@ -161,7 +167,20 @@ pub async fn log_in(
     }
 }
 
-// any account
+//log out functionaliteit
+pub async fn logout() -> impl IntoResponse {
+    let mut headers = HeaderMap::new();
+
+    // Expire cookie immediately
+    headers.insert(
+        header::SET_COOKIE,
+        HeaderValue::from_static("token=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax"),
+    );
+
+    (StatusCode::OK, headers)
+}
+
+// any account standard me func
 pub async fn me(
     State(state): State<AppState>,
     headers: HeaderMap,

@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { jwtVerify } from "jose";
 
 type AppRole = "admin" | "user" | "warehouse";
 
@@ -20,16 +19,32 @@ function requiredRoleForPath(pathname: string): AppRole | null {
 export async function proxy(request: NextRequest) {
     const pathname = request.nextUrl.pathname;
     const requiredRole = requiredRoleForPath(pathname);
-
     if (!requiredRole) return NextResponse.next();
 
-    const token = request.cookies.get("token")?.value;
-    if (!token) return NextResponse.redirect(new URL("/login", request.url));
+    // If no token cookie at all, go login
+    if (!request.cookies.get("token")?.value) {
+        return NextResponse.redirect(new URL("/login", request.url));
+    }
 
     try {
-        const secret = new TextEncoder().encode(process.env.JWT_SECRET);
-        const { payload } = await jwtVerify(token, secret);
-        const userRole = String(payload.role ?? "") as AppRole;
+        // Forward ALL incoming cookies, not only token
+        const incomingCookieHeader = request.headers.get("cookie") ?? "";
+
+        const res = await fetch("http://localhost:8080/me", {
+            method: "GET",
+            headers: {
+                cookie: incomingCookieHeader,
+                accept: "application/json",
+            },
+            cache: "no-store",
+        });
+
+        if (!res.ok) {
+            return NextResponse.redirect(new URL("/login", request.url));
+        }
+
+        const claims = await res.json();
+        const userRole = String(claims?.role ?? "") as AppRole;
 
         if (userRole !== requiredRole) {
             return NextResponse.redirect(new URL("/unauthorized", request.url));

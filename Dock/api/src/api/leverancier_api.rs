@@ -7,6 +7,8 @@ use axum::{
     http::{HeaderMap, StatusCode},
 };
 
+//==============Admin=========//
+//admin create leverancier func
 pub async fn create_leverancier(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -35,6 +37,7 @@ pub async fn create_leverancier(
     Ok((StatusCode::CREATED, Json(response)))
 }
 
+//admin find_all leverancier func
 pub async fn find_all(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -61,6 +64,7 @@ pub async fn find_all(
     Ok((StatusCode::OK, Json(response)))
 }
 
+//admin find leverancier func
 pub async fn find_leverancier(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -81,6 +85,7 @@ pub async fn find_leverancier(
     }))
 }
 
+//admin delete leverancier func
 pub async fn delete_leverancier(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -98,6 +103,7 @@ pub async fn delete_leverancier(
     Ok(StatusCode::OK)
 }
 
+//admin update leverancier func
 pub async fn update_leverancier(
     State(state): State<AppState>,
     Path(leverancier_id): Path<String>,

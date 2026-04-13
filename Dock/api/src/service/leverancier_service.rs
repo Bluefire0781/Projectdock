@@ -4,7 +4,7 @@ use sea_orm::{
 };
 
 pub async fn create_leverancier(
-    db: &DatabaseConnection, // Accept connection as parameter
+    db: &DatabaseConnection,
     leverancier_id: String,
     leverancier_naam: Option<String>,
     transporteur: Option<String>,
@@ -20,7 +20,7 @@ pub async fn create_leverancier(
         ..Default::default()
     };
 
-    new_leverancier.insert(db).await // Use the passed connection
+    new_leverancier.insert(db).await
 }
 
 pub async fn find_all(db: &DatabaseConnection) -> Result<Vec<leverancier::Model>, sea_orm::DbErr> {

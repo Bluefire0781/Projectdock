@@ -1,15 +1,13 @@
 use crate::state::AppState;
 use axum::{
     Router,
-    http::{HeaderMap, HeaderValue, Method, StatusCode, header},
-    response::IntoResponse,
+    http::{HeaderValue, Method, header},
     routing::{delete, get, patch, post},
 };
 use tower_http::cors::CorsLayer;
 
 pub mod account_api;
 pub mod leverancier_api;
-pub mod users;
 
 pub fn router() -> Router<AppState> {
     let cors = CorsLayer::new()
@@ -25,13 +23,11 @@ pub fn router() -> Router<AppState> {
         .allow_headers([header::CONTENT_TYPE, header::AUTHORIZATION]);
 
     Router::new()
-        .route("/", get(root))
-        .route("/users", post(users::create_user))
         .route("/add", get(add))
         //login
         .route("/login", post(account_api::log_in))
         .route("/me", get(account_api::me))
-        .route("/logout", post(logout))
+        .route("/logout", post(account_api::logout))
         //account
         .route("/accounts", get(account_api::find_all))
         .route("/accounts", post(account_api::create_account))
@@ -56,10 +52,6 @@ pub fn router() -> Router<AppState> {
         .layer(cors)
 }
 
-async fn root() -> &'static str {
-    "Hello, World!"
-}
-
 async fn add() -> String {
     (4 + 4).to_string()
 }
@@ -73,16 +65,4 @@ mod tests {
         let result = add().await;
         assert_eq!(result, "8");
     }
-}
-
-pub async fn logout() -> impl IntoResponse {
-    let mut headers = HeaderMap::new();
-
-    // Expire cookie immediately
-    headers.insert(
-        header::SET_COOKIE,
-        HeaderValue::from_static("token=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax"),
-    );
-
-    (StatusCode::OK, headers)
 }
