@@ -9,10 +9,11 @@ impl MigrationTrait for Migration {
         manager
             .create_table(
                 Table::create()
-                    .table("dock")
+                    .table("rittype")
                     .if_not_exists()
-                    .col(pk_auto("dock_id"))
-                    .col(boolean("status").not_null().default(false))
+                    .col(pk_auto("id"))
+                    .col(big_integer("rittypeid").not_null().unique_key())
+                    .col(string("description").not_null())
                     .to_owned(),
             )
             .await
@@ -20,7 +21,7 @@ impl MigrationTrait for Migration {
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
-            .drop_table(Table::drop().table("dock").to_owned())
+            .drop_table(Table::drop().table("rittype").to_owned())
             .await
     }
 }

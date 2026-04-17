@@ -14,8 +14,8 @@ impl MigrationTrait for Migration {
                     .col(big_integer("afspraak_id").not_null().primary_key())
                     .col(big_integer("rit_nmr").not_null())
                     .col(tiny_integer("dock_nmr").not_null())
-                    .col(string("starttijd").not_null())
-                    .col(string("eindtijd").not_null())
+                    .col(date_time("starttijd").not_null())
+                    .col(date_time("eindtijd").not_null())
                     .col(string("laning_type").not_null())
                     .foreign_key(
                         ForeignKey::create()

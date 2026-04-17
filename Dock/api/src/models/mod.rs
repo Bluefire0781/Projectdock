@@ -4,12 +4,14 @@ pub mod dock;
 pub mod jwt;
 pub mod leverancier;
 pub mod rit;
+pub mod rittype;
 pub mod toegestane_dock;
 
 pub use account::*;
 pub use jwt::*;
 //pub use afspraak::*;
-//pub use dock::*;
+pub use dock::*;
 pub use leverancier::*;
+pub use rittype::*;
 //pub use rit::*;
 //pub use toegestane_dock::*;

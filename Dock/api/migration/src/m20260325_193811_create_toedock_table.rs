@@ -11,13 +11,13 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table("toegestane_dock")
                     .if_not_exists()
-                    .col(tiny_integer("dock_id").not_null())
-                    .col(big_integer("leverancier_id").not_null())
+                    .col(big_integer("dock_id").not_null())
+                    .col(big_integer("rit_type").not_null())
                     .primary_key(
                         Index::create()
                             .name("pk_toegestane_dock")
                             .col("dock_id")
-                            .col("leverancier_id"),
+                            .col("rit_type"),
                     )
                     .foreign_key(
                         ForeignKey::create()
@@ -28,9 +28,9 @@ impl MigrationTrait for Migration {
                     )
                     .foreign_key(
                         ForeignKey::create()
-                            .name("fk_toegestane_dock_leverancier")
-                            .from("toegestane_dock", "leverancier_id")
-                            .to("leverancier", "id")
+                            .name("fk_toegestane_dock_rittype")
+                            .from("toegestane_dock", "rit_type")
+                            .to("rittype", "rittypeid")
                             .on_delete(ForeignKeyAction::Cascade),
                     )
                     .to_owned(),

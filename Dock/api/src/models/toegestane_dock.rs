@@ -8,11 +8,11 @@ pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub dock_nmr: i16,
     #[sea_orm(primary_key, auto_increment = false)]
-    pub leverancier_nmr: i64,
+    pub rit_type: i16,
     #[sea_orm(belongs_to, from = "dock_nmr", to = "dock_id")]
     pub dock: Option<super::dock::Entity>,
-    #[sea_orm(belongs_to, from = "leverancier_nmr", to = "id")]
-    pub leverancier: Option<super::leverancier::Entity>,
+    #[sea_orm(belongs_to, from = "rit_type", to = "id")]
+    pub rittype: Option<super::rittype::Entity>,
 }
 
 impl ActiveModelBehavior for ActiveModel {}
