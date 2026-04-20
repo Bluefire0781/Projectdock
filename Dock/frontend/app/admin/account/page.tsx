@@ -120,6 +120,7 @@ export default function AccountsPage() {
 
     useEffect(() => {
         fetchAccounts();
+        // eslint-disable-next-line
     }, []);
 
     function openCreateModal() {
@@ -293,7 +294,6 @@ export default function AccountsPage() {
         }
     }
 
-    const totalPages = Math.ceil(accounts.length / ACCOUNTS_PER_PAGE);
     const startIndex = (currentPage - 1) * ACCOUNTS_PER_PAGE;
     const endIndex = startIndex + ACCOUNTS_PER_PAGE;
     const paginatedAccounts = accounts.slice(startIndex, endIndex);

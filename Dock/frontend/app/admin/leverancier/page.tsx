@@ -140,6 +140,7 @@ export default function Home() {
 
     useEffect(() => {
         fetchLeveranciers();
+        // eslint-disable-next-line
     }, []);
 
     // Form Logic
@@ -504,8 +505,8 @@ export default function Home() {
                                                 key={page}
                                                 onClick={() => setCurrentPage(page)}
                                                 className={`px-3 py-1 rounded-md transition ${currentPage === page
-                                                        ? "bg-[#013c59] text-white"
-                                                        : "border border-[#013c59] text-[#013c59] hover:bg-[#013c59] hover:text-white"
+                                                    ? "bg-[#013c59] text-white"
+                                                    : "border border-[#013c59] text-[#013c59] hover:bg-[#013c59] hover:text-white"
                                                     }`}
                                             >
                                                 {page}

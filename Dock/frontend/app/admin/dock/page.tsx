@@ -109,6 +109,7 @@ export default function DockRitTypeManagerPage() {
 
     useEffect(() => {
         refreshAll();
+        // eslint-disable-next-line
     }, [assignmentVersion]);
 
     useEffect(() => {
@@ -171,7 +172,7 @@ export default function DockRitTypeManagerPage() {
         const rt = ritTypes.find(rt => rt.id === selectedRitTypeId);
         if (!rt) return;
         try {
-            for (let dockId of selectedDockIds) {
+            for (const dockId of selectedDockIds) {
                 await fetch(`${API_BASE}/toegestanedock`, {
                     method: "POST",
                     credentials: "include",
@@ -191,7 +192,7 @@ export default function DockRitTypeManagerPage() {
         const rt = ritTypes.find(rt => rt.id === selectedRitTypeId);
         if (!rt) return;
         try {
-            for (let dockId of selectedDockIds) {
+            for (const dockId of selectedDockIds) {
                 await fetch(`${API_BASE}/toegestanedock/${dockId}/${rt.rittypeid}`, {
                     method: "DELETE",
                     credentials: "include"
@@ -319,7 +320,7 @@ export default function DockRitTypeManagerPage() {
         const description = editModalDescription.trim();
         const rittypeid = editModalRitTypeId;
         if (!description) return setError("Description is required.");
-        if (!rittpeid || isNaN(rittpeid)) return setError("RitType number is required.");
+        if (!rittypeid || isNaN(rittypeid)) return setError("RitType number is required.");
         try {
             const res = await fetch(`${API_BASE}/rittypes/${ritTypeEditing.id}`, {
                 method: "PATCH",
@@ -460,14 +461,14 @@ export default function DockRitTypeManagerPage() {
                             <h2 className="text-3xl font-semibold text-[#013c59] mb-2">Docks</h2>
                             <div className="space-y-2 mb-2">
                                 <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder='Search dock ID (e.g. "1" or "1,2,3")' className={inputClass} />
-                                <select className={inputClass} value={statusFilter} onChange={e => setStatusFilter(e.target.value as any)}>
-                                    <option value="all">All statuses</option>
-                                    <option value="open">Open</option>
-                                    <option value="closed">Closed</option>
+                                <select className={inputClass} value={statusFilter} onChange={e => setStatusFilter(e.target.value as 'all' | 'open' | 'closed')}>
+                                    <option value='all'>All statuses</option>
+                                    <option value='open'>Open</option>
+                                    <option value='closed'>Closed</option>
                                 </select>
                                 <select className={inputClass} value={ritTypeFilter} onChange={e => setRitTypeFilter(e.target.value)}>
-                                    <option value="all">All RitTypes</option>
-                                    <option value="unassigned">Unassigned only</option>
+                                    <option value='all'>All RitTypes</option>
+                                    <option value='unassigned'>Unassigned only</option>
                                     {ritTypes.map((rt) => (
                                         <option key={rt.id} value={rt.id}>
                                             RitType {rt.rittypeid}: {rt.description}

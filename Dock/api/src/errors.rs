@@ -9,4 +9,3 @@ pub enum LoginError {
     #[error("failed to create token")]
     TokenCreationError,
 }
-
