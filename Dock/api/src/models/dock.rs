@@ -26,7 +26,7 @@ pub struct Model {
     pub status: bool,
     #[sea_orm(has_many)]
     pub afspraak: HasMany<super::afspraak::Entity>,
-    #[sea_orm(has_many, via = "toegestane_dock")]
+    #[sea_orm(has_many, via = "toegestanedock")]
     pub rittype: HasMany<super::rittype::Entity>,
 }
 

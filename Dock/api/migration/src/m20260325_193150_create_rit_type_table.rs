@@ -12,7 +12,7 @@ impl MigrationTrait for Migration {
                     .table("rittype")
                     .if_not_exists()
                     .col(pk_auto("id"))
-                    .col(big_integer("rittypeid").not_null().unique_key())
+                    .col(integer("rittypeid").not_null().unique_key())
                     .col(string("description").not_null())
                     .to_owned(),
             )

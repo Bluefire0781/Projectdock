@@ -14,14 +14,15 @@ pub async fn create_rittype(
 ) -> Result<(StatusCode, Json<RitTypeResponse>), StatusCode> {
     jwt_service::require_role(&headers, &state.jwt_secret, &["admin"][..])?;
 
-    let rittype = rittype_service::create_rittype(&state.db, payload.rittypeid, payload.desc)
-        .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let rittype =
+        rittype_service::create_rittype(&state.db, payload.rittypeid, payload.description)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     let response = RitTypeResponse {
         id: rittype.id,
         rittypeid: rittype.rittypeid,
-        desc: rittype.description,
+        description: rittype.description,
     };
 
     Ok((StatusCode::CREATED, Json(response)))
@@ -42,7 +43,7 @@ pub async fn find_all(
         .map(|r| RitTypeResponse {
             id: r.id,
             rittypeid: r.rittypeid,
-            desc: r.description,
+            description: r.description,
         })
         .collect();
 
@@ -57,7 +58,7 @@ pub async fn update_rittype(
 ) -> Result<(StatusCode, Json<RitTypeResponse>), StatusCode> {
     jwt_service::require_role(&headers, &state.jwt_secret, &["admin"][..])?;
 
-    let updated = rittype_service::update_rittype(&state.db, id, payload.desc)
+    let updated = rittype_service::update_rittype(&state.db, id, payload.description)
         .await
         .map_err(|e| match e {
             sea_orm::DbErr::RecordNotFound(_) => StatusCode::NOT_FOUND,
@@ -67,7 +68,7 @@ pub async fn update_rittype(
     let response = RitTypeResponse {
         id: updated.id,
         rittypeid: updated.rittypeid,
-        desc: updated.description,
+        description: updated.description,
     };
 
     Ok((StatusCode::OK, Json(response)))
@@ -94,7 +95,7 @@ pub async fn delete_rittype(
         Json(RitTypeResponse {
             id: rittype.id,
             rittypeid: rittype.rittypeid,
-            desc: rittype.description,
+            description: rittype.description,
         }),
     ))
 }

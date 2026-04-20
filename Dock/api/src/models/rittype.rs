@@ -4,20 +4,19 @@ use serde::{Deserialize, Serialize};
 #[derive(Deserialize)]
 pub struct CreateRitType {
     pub rittypeid: i32,
-    pub desc: String,
+    pub description: String,
 }
 
 #[derive(Deserialize)]
 pub struct UpdateRitType {
-    pub rittypeid: Option<i32>,
-    pub desc: Option<String>,
+    pub description: Option<String>,
 }
 
 #[derive(Serialize)]
 pub struct RitTypeResponse {
     pub id: i32,
     pub rittypeid: i32,
-    pub desc: String,
+    pub description: String,
 }
 
 #[sea_orm::model]
@@ -26,11 +25,12 @@ pub struct RitTypeResponse {
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32, // pk
+    #[sea_orm(unique)]
     pub rittypeid: i32,
     pub description: String,
     #[sea_orm(has_many)]
     pub rit: HasMany<super::rit::Entity>,
-    #[sea_orm(has_many, via = "toegestane_dock")]
+    #[sea_orm(has_many, via = "toegestanedock")]
     pub dock: HasMany<super::dock::Entity>,
 }
 

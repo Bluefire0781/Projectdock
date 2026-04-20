@@ -2,37 +2,25 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-// --- TYPES ---
+// Types
 type Dock = { id: number; status: boolean };
-type CreateDockPayload = { status: boolean };
-type PatchDockPayload = { status?: boolean };
-
-type RitTypeApi = { id: number; desc: string };
-type CreateRitTypePayload = { desc: string };
-type PatchRitTypePayload = { desc?: string };
+type Assignment = { dock_id: number; rit_type: number };
+type RitTypeApi = { id: number; rittypeid: number; description: string };
 
 type RitType = {
     id: string;
+    rittypeid: number;
     description: string;
     dockIds: number[];
 };
 
-type LocalAssignmentsState = {
-    byRitTypeId: Record<string, number[]>;
-};
-
-const LS_ASSIGN_KEY = "dock_rittype_assignments_v1";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL?.trim() || "http://localhost:8080";
+const inputClass = "w-full border border-slate-300 rounded-md px-3 py-2 text-slate-800 placeholder:text-slate-600 focus:text-slate-900 focus:border-black focus:outline-none focus:ring-2 focus:ring-[#013c59]/30";
+const updateSelectClass = "border border-slate-500 bg-white text-slate-800 rounded px-2 py-1 text-sm shrink-0 focus:outline-none focus:ring-2 focus:ring-[#013c59]/40";
 
 export default function DockRitTypeManagerPage() {
-    const API_BASE = process.env.NEXT_PUBLIC_API_URL?.trim() || "http://localhost:8080";
-
-    // --- STATE ---
-    const inputClass = "w-full border border-slate-300 rounded-md px-3 py-2 text-slate-800 placeholder:text-slate-600 focus:text-slate-900 focus:border-black focus:outline-none focus:ring-2 focus:ring-[#013c59]/30";
-    const updateSelectClass = "border border-slate-500 bg-white text-slate-800 rounded px-2 py-1 text-sm shrink-0 focus:outline-none focus:ring-2 focus:ring-[#013c59]/40";
-
     const [allDocks, setAllDocks] = useState<Dock[]>([]);
     const [loadingDocks, setLoadingDocks] = useState(false);
-
     const [creatingDock, setCreatingDock] = useState(false);
     const [bulkCreatingDock, setBulkCreatingDock] = useState(false);
     const [updatingDockId, setUpdatingDockId] = useState<number | null>(null);
@@ -40,8 +28,9 @@ export default function DockRitTypeManagerPage() {
 
     const [ritTypes, setRitTypes] = useState<RitType[]>([]);
     const [selectedRitTypeId, setSelectedRitTypeId] = useState<string | null>(null);
-    const [ritTypeEditing, setRitTypeEditing] = useState<RitType | null>(null); // Show edit modal
-    const [editModalDesc, setEditModalDesc] = useState(""); // Modal editable desc
+    const [ritTypeEditing, setRitTypeEditing] = useState<RitType | null>(null);
+    const [editModalDescription, setEditModalDescription] = useState("");
+    const [editModalRitTypeId, setEditModalRitTypeId] = useState<number | null>(null);
     const [isEditModalDeleting, setIsEditModalDeleting] = useState(false);
 
     const [searchQuery, setSearchQuery] = useState("");
@@ -61,26 +50,14 @@ export default function DockRitTypeManagerPage() {
     const [bulkCreateStatus, setBulkCreateStatus] = useState<boolean>(true);
     const [bulkCreateCount, setBulkCreateCount] = useState<number>(10);
 
-    // Create modal only has description
+    // MODAL: RitType creation
     const [ritTypeFormDescription, setRitTypeFormDescription] = useState("");
-    const [localAssignments, setLocalAssignments] = useState<Record<string, number[]>>({});
+    const [ritTypeFormNumber, setRitTypeFormNumber] = useState<number>(0);
 
-    // --- LOCAL ASSIGNMENTS LOGIC ---
-    useEffect(() => {
-        try {
-            const raw = localStorage.getItem(LS_ASSIGN_KEY);
-            if (!raw) return;
-            const parsed = JSON.parse(raw) as LocalAssignmentsState;
-            setLocalAssignments(parsed.byRitTypeId ?? {});
-        } catch {
-            setLocalAssignments({});
-        }
-    }, []);
-    useEffect(() => {
-        localStorage.setItem(LS_ASSIGN_KEY, JSON.stringify({ byRitTypeId: localAssignments } as LocalAssignmentsState));
-    }, [localAssignments]);
+    // Assignment table state from backend
+    const [assignments, setAssignments] = useState<Assignment[]>([]);
+    const [assignmentVersion, setAssignmentVersion] = useState(0);
 
-    // --- FETCH ---
     async function fetchDocks() {
         setLoadingDocks(true);
         try {
@@ -88,28 +65,22 @@ export default function DockRitTypeManagerPage() {
             if (!res.ok) throw new Error(`Failed to fetch docks (${res.status}): ${await res.text()}`);
             const data = (await res.json()) as Dock[];
             setAllDocks(data);
-
             const valid = new Set(data.map((d) => d.id));
             setSelectedDockIds((prev) => prev.filter((id) => valid.has(id)));
-            setLocalAssignments((prev) => {
-                const next: Record<string, number[]> = {};
-                for (const [k, dockIds] of Object.entries(prev)) {
-                    next[k] = dockIds.filter((id) => valid.has(id));
-                }
-                return next;
-            });
         } finally {
             setLoadingDocks(false);
         }
     }
+
     async function fetchRitTypes() {
         const res = await fetch(`${API_BASE}/rittypes`, { method: "GET", credentials: "include" });
         if (!res.ok) throw new Error(`Failed to fetch rittypes (${res.status}): ${await res.text()}`);
         const apiData = (await res.json()) as RitTypeApi[];
         const mapped: RitType[] = apiData.map((r) => ({
             id: String(r.id),
-            description: r.desc,
-            dockIds: localAssignments[String(r.id)] ?? [],
+            rittypeid: r.rittypeid,
+            description: r.description,
+            dockIds: assignments.filter(a => a.rit_type === r.rittypeid).map(a => a.dock_id),
         }));
         setRitTypes(mapped);
 
@@ -118,34 +89,39 @@ export default function DockRitTypeManagerPage() {
         } else if (selectedRitTypeId && !mapped.some((r) => r.id === selectedRitTypeId)) {
             setSelectedRitTypeId(mapped[0]?.id ?? null);
         }
-        const validRtIds = new Set(mapped.map((m) => m.id));
-        setLocalAssignments((prev) => {
-            const next: Record<string, number[]> = {};
-            for (const [k, v] of Object.entries(prev)) {
-                if (validRtIds.has(k)) next[k] = v;
-            }
-            return next;
-        });
     }
+
+    async function fetchAssignments() {
+        const res = await fetch(`${API_BASE}/toegestanedock`, { method: "GET", credentials: "include" });
+        if (!res.ok) throw new Error(`Failed to fetch assignments (${res.status}): ${await res.text()}`);
+        const apiData = (await res.json()) as Assignment[];
+        setAssignments(apiData);
+    }
+
     async function refreshAll() {
         setError(null);
         try {
-            await Promise.all([fetchDocks(), fetchRitTypes()]);
+            await Promise.all([fetchDocks(), fetchAssignments()]);
         } catch (e) {
             setError(e instanceof Error ? e.message : "Unknown error");
         }
     }
+
     useEffect(() => {
         refreshAll();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
-    useEffect(() => {
-        setRitTypes((prev) => prev.map((rt) => ({ ...rt, dockIds: localAssignments[rt.id] ?? [] })));
-    }, [localAssignments]);
+    }, [assignmentVersion]);
 
-    // --- MEMOS ---
+    useEffect(() => {
+        fetchRitTypes();
+        // eslint-disable-next-line
+    }, [assignments]);
+
+    // Derived state
     const sortedAllDocks = useMemo(() => [...allDocks].sort((a, b) => a.id - b.id), [allDocks]);
-    const selectedRitType = useMemo(() => ritTypes.find((r) => r.id === selectedRitTypeId) ?? null, [ritTypes, selectedRitTypeId]);
+    const selectedRitType = useMemo(
+        () => ritTypes.find((r) => r.id === selectedRitTypeId) ?? null,
+        [ritTypes, selectedRitTypeId]
+    );
     const dockToRitTypesMap = useMemo(() => {
         const map = new Map<number, RitType[]>();
         for (const rt of ritTypes) for (const dockId of rt.dockIds) map.set(dockId, [...(map.get(dockId) ?? []), rt]);
@@ -156,12 +132,16 @@ export default function DockRitTypeManagerPage() {
         const idTokens = raw ? raw.split(",").map((s) => s.trim()).filter(Boolean) : [];
         return sortedAllDocks.filter((dock) => {
             const assignedRts = dockToRitTypesMap.get(dock.id) ?? [];
-            const matchStatus = statusFilter === "all" || (statusFilter === "open" && dock.status) || (statusFilter === "closed" && !dock.status);
-            const matchRitDropdown = ritTypeFilter === "all"
-                ? true
-                : ritTypeFilter === "unassigned"
-                    ? assignedRts.length === 0
-                    : assignedRts.some((r) => r.id === ritTypeFilter);
+            const matchStatus =
+                statusFilter === "all" ||
+                (statusFilter === "open" && dock.status) ||
+                (statusFilter === "closed" && !dock.status);
+            const matchRitDropdown =
+                ritTypeFilter === "all"
+                    ? true
+                    : ritTypeFilter === "unassigned"
+                        ? assignedRts.length === 0
+                        : assignedRts.some((r) => r.id === ritTypeFilter);
             let matchSearch = true;
             if (raw) {
                 if (idTokens.length > 1 || raw.includes(",")) matchSearch = idTokens.some((t) => String(dock.id) === t);
@@ -171,106 +151,80 @@ export default function DockRitTypeManagerPage() {
         });
     }, [sortedAllDocks, searchQuery, statusFilter, ritTypeFilter, dockToRitTypesMap]);
     const assignedDockSet = useMemo(() => new Set(selectedRitType?.dockIds ?? []), [selectedRitType]);
-    const assignedDocks = useMemo(() => (!selectedRitType ? [] : sortedAllDocks.filter((d) => assignedDockSet.has(d.id))), [selectedRitType, sortedAllDocks, assignedDockSet]);
-    const filteredAssignedDocks = useMemo(() => assignedDocks.filter((dock) => assignedStatusFilter === "all" ? true : assignedStatusFilter === "open" ? dock.status : !dock.status), [assignedDocks, assignedStatusFilter]);
-    const unassignedFilteredDocks = useMemo(() => filteredDocks.filter((d) => !assignedDockSet.has(d.id)), [filteredDocks, assignedDockSet]);
+    const assignedDocks = useMemo(
+        () => (!selectedRitType ? [] : sortedAllDocks.filter((d) => assignedDockSet.has(d.id))),
+        [selectedRitType, sortedAllDocks, assignedDockSet]
+    );
+    const filteredAssignedDocks = useMemo(
+        () => assignedDocks.filter((dock) => assignedStatusFilter === "all" ? true : assignedStatusFilter === "open" ? dock.status : !dock.status),
+        [assignedDocks, assignedStatusFilter]
+    );
+    const unassignedFilteredDocks = useMemo(
+        () => filteredDocks.filter((d) => !assignedDockSet.has(d.id)),
+        [filteredDocks, assignedDockSet]
+    );
 
-    // --- RITTYPE CREATE / EDIT MODAL LOGIC ---
-    function openRitTypeModal() {
-        setRitTypeFormDescription("");
-        setShowCreateRitTypeModal(true);
-    }
-    async function createRitTypeFromModal() {
-        const desc = ritTypeFormDescription.trim();
-        if (!desc) return setError("Description is required.");
+    // Assignment actions (fix: use dock_id as key, not dock_nmr)
+    async function assignSelectedToCurrentRitType() {
+        if (!selectedRitTypeId) return setError("Select a RitType first.");
+        if (!selectedDockIds.length) return setError("Select at least one dock.");
+        const rt = ritTypes.find(rt => rt.id === selectedRitTypeId);
+        if (!rt) return;
         try {
-            const res = await fetch(`${API_BASE}/rittypes`, {
-                method: "POST",
-                credentials: "include",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ desc } as CreateRitTypePayload),
-            });
-            if (!res.ok) throw new Error(`Create RitType failed (${res.status}): ${await res.text()}`);
-            const created = (await res.json()) as RitTypeApi;
-            const newId = String(created.id);
-            setLocalAssignments((prev) => ({ ...prev, [newId]: [] }));
-            setShowCreateRitTypeModal(false);
-            setSelectedRitTypeId(newId);
-            setRitTypeFormDescription("");
-            setSuccessMsg("RitType created.");
-            await fetchRitTypes();
+            for (let dockId of selectedDockIds) {
+                await fetch(`${API_BASE}/toegestanedock`, {
+                    method: "POST",
+                    credentials: "include",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ dock_id: dockId, rit_type: rt.rittypeid }), // THIS IS THE CRUCIAL CHANGE!
+                });
+            }
+            setSuccessMsg(`Assigned ${selectedDockIds.length} dock(s) in database.`);
+            setAssignmentVersion(v => v + 1);
+        } catch (e) {
+            setError(e instanceof Error ? e.message : "Unknown error");
+        }
+    }
+    async function unassignSelectedFromCurrentRitType() {
+        if (!selectedRitTypeId) return setError("Select a RitType first.");
+        if (!selectedDockIds.length) return setError("Select at least one dock.");
+        const rt = ritTypes.find(rt => rt.id === selectedRitTypeId);
+        if (!rt) return;
+        try {
+            for (let dockId of selectedDockIds) {
+                await fetch(`${API_BASE}/toegestanedock/${dockId}/${rt.rittypeid}`, {
+                    method: "DELETE",
+                    credentials: "include"
+                });
+            }
+            setSuccessMsg(`Unassigned ${selectedDockIds.length} dock(s) in database.`);
+            setAssignmentVersion(v => v + 1);
         } catch (e) {
             setError(e instanceof Error ? e.message : "Unknown error");
         }
     }
 
-    function beginEditRitType(rt: RitType) {
-        setRitTypeEditing(rt);
-        setEditModalDesc(rt.description);
-        setError(null);
-        setSuccessMsg(null);
-        setIsEditModalDeleting(false);
+    // Local (UI only) selection actions
+    function toggleDockSelection(dockId: number) {
+        setSelectedDockIds((prev) =>
+            prev.includes(dockId) ? prev.filter((id) => id !== dockId) : [...prev, dockId]
+        );
+    }
+    function selectVisible() {
+        const visibleIds = unassignedFilteredDocks.map((d) => d.id);
+        setSelectedDockIds((prev) => Array.from(new Set([...prev, ...visibleIds])));
+    }
+    function clearSelection() { setSelectedDockIds([]); }
+    function clearLocalAssignments() {
+        setError("This feature is now backend-managed. Unassign assignments to clear.");
     }
 
-    function closeEditRitTypeModal() {
-        setRitTypeEditing(null);
-        setError(null);
-        setIsEditModalDeleting(false);
-    }
-
-    async function saveEditRitType() {
-        if (!ritTypeEditing) return;
-        const desc = editModalDesc.trim();
-        if (!desc) return setError("Description is required.");
-
-        try {
-            const res = await fetch(`${API_BASE}/rittypes/${ritTypeEditing.id}`, {
-                method: "PATCH",
-                credentials: "include",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ desc } as PatchRitTypePayload),
-            });
-            if (!res.ok) throw new Error(`Update RitType failed (${res.status}): ${await res.text()}`);
-            setSuccessMsg("RitType updated.");
-            await fetchRitTypes();
-            closeEditRitTypeModal();
-        } catch (e) {
-            setError(e instanceof Error ? e.message : "Unknown error");
-        }
-    }
-
-    async function deleteRitTypeModal() {
-        if (!ritTypeEditing) return;
-        setIsEditModalDeleting(true);
-        setError(null);
-        setSuccessMsg(null);
-        try {
-            const res = await fetch(`${API_BASE}/rittypes/${ritTypeEditing.id}`, {
-                method: "DELETE",
-                credentials: "include",
-            });
-            if (!res.ok) throw new Error(`Delete RitType failed (${res.status}): ${await res.text()}`);
-            setLocalAssignments((prev) => {
-                const next = { ...prev };
-                delete next[ritTypeEditing.id];
-                return next;
-            });
-            await fetchRitTypes();
-            setSuccessMsg("RitType deleted.");
-            closeEditRitTypeModal();
-        } catch (e) {
-            setError(e instanceof Error ? e.message : "Unknown error");
-        } finally {
-            setIsEditModalDeleting(false);
-        }
-    }
-
-    // --- DOCKS / BULK CREATE / UPDATE LOGIC ---
+    // ---- Dock/RitType CRUD as before ----
     async function createDockWithStatus(status: boolean) {
         const res = await fetch(`${API_BASE}/docks`, {
             method: "POST", credentials: "include",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ status } as CreateDockPayload),
+            body: JSON.stringify({ status }),
         });
         if (!res.ok) throw new Error(`Create dock failed (${res.status}): ${await res.text()}`);
     }
@@ -288,7 +242,7 @@ export default function DockRitTypeManagerPage() {
                 fetch(`${API_BASE}/docks`, {
                     method: "POST", credentials: "include",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ status: bulkCreateStatus } as CreateDockPayload),
+                    body: JSON.stringify({ status: bulkCreateStatus }),
                 })
             ));
             const failed = results.filter((r) => !r.ok);
@@ -304,7 +258,7 @@ export default function DockRitTypeManagerPage() {
             const res = await fetch(`${API_BASE}/docks/${dock.id}`, {
                 method: "PATCH", credentials: "include",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ status: nextStatus } as PatchDockPayload),
+                body: JSON.stringify({ status: nextStatus }),
             });
             if (!res.ok) throw new Error(`Update dock failed (${res.status}): ${await res.text()}`);
             setSuccessMsg(`Dock ${dock.id} updated.`); await fetchDocks();
@@ -316,59 +270,98 @@ export default function DockRitTypeManagerPage() {
         try {
             const res = await fetch(`${API_BASE}/docks/${dockId}`, {
                 method: "DELETE", credentials: "include"
-            }); if (!res.ok) throw new Error(`Delete dock failed (${res.status}): ${await res.text()}`);
-            setLocalAssignments((prev) => {
-                const next: Record<string, number[]> = {};
-                for (const [rtId, ids] of Object.entries(prev)) next[rtId] = ids.filter((id) => id !== dockId);
-                return next;
             });
-            setSelectedDockIds((prev) => prev.filter((id) => id !== dockId));
+            if (!res.ok) throw new Error(`Delete dock failed (${res.status}): ${await res.text()}`);
             setSuccessMsg(`Dock ${dockId} deleted.`);
             await fetchDocks();
         } catch (e) { setError(e instanceof Error ? e.message : "Unknown error"); }
         finally { setDeletingDockId(null); }
     }
-    function toggleDockSelection(dockId: number) {
-        setSelectedDockIds((prev) =>
-            prev.includes(dockId) ? prev.filter((id) => id !== dockId) : [...prev, dockId]
-        );
-    }
-    function selectVisible() {
-        const visibleIds = unassignedFilteredDocks.map((d) => d.id);
-        setSelectedDockIds((prev) => Array.from(new Set([...prev, ...visibleIds])));
-    }
-    function clearSelection() { setSelectedDockIds([]); }
-    function assignSelectedToCurrentRitType() {
-        if (!selectedRitTypeId) return setError("Select a RitType first.");
-        if (!selectedDockIds.length) return setError("Select at least one dock.");
-        setLocalAssignments((prev) => {
-            const current = prev[selectedRitTypeId] ?? [];
-            return {
-                ...prev,
-                [selectedRitTypeId]: Array.from(new Set([...current, ...selectedDockIds])),
-            };
-        });
-        setSuccessMsg(`Assigned ${selectedDockIds.length} dock(s) locally.`);
-    }
-    function unassignSelectedFromCurrentRitType() {
-        if (!selectedRitTypeId) return setError("Select a RitType first.");
-        if (!selectedDockIds.length) return setError("Select at least one dock.");
-        setLocalAssignments((prev) => {
-            const current = prev[selectedRitTypeId] ?? [];
-            return {
-                ...prev,
-                [selectedRitTypeId]: current.filter((id) => !selectedDockIds.includes(id)),
-            };
-        });
-        setSuccessMsg(`Unassigned ${selectedDockIds.length} dock(s) locally.`);
-    }
-    function clearLocalAssignments() {
-        setLocalAssignments({});
-        setSelectedDockIds([]);
-        setSuccessMsg("All local assignments cleared.");
+
+    async function createRitTypeFromModal() {
+        const description = ritTypeFormDescription.trim();
+        const rittypeid = ritTypeFormNumber;
+        if (!description) return setError("Description is required.");
+        if (!rittypeid || isNaN(rittypeid)) return setError("RitType number is required.");
+        try {
+            const res = await fetch(`${API_BASE}/rittypes`, {
+                method: "POST",
+                credentials: "include",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ rittypeid, description }),
+            });
+            if (!res.ok) throw new Error(`Create RitType failed (${res.status}): ${await res.text()}`);
+            setShowCreateRitTypeModal(false);
+            setRitTypeFormDescription("");
+            setRitTypeFormNumber(0);
+            setSuccessMsg("RitType created.");
+            await fetchRitTypes();
+        } catch (e) {
+            setError(e instanceof Error ? e.message : "Unknown error");
+        }
     }
 
-    // --- RENDER ---
+    function beginEditRitType(rt: RitType) {
+        setRitTypeEditing(rt);
+        setEditModalDescription(rt.description);
+        setEditModalRitTypeId(rt.rittypeid);
+        setError(null);
+        setSuccessMsg(null);
+        setIsEditModalDeleting(false);
+    }
+    function closeEditRitTypeModal() {
+        setRitTypeEditing(null);
+        setError(null);
+        setIsEditModalDeleting(false);
+    }
+    async function saveEditRitType() {
+        if (!ritTypeEditing) return;
+        const description = editModalDescription.trim();
+        const rittypeid = editModalRitTypeId;
+        if (!description) return setError("Description is required.");
+        if (!rittpeid || isNaN(rittpeid)) return setError("RitType number is required.");
+        try {
+            const res = await fetch(`${API_BASE}/rittypes/${ritTypeEditing.id}`, {
+                method: "PATCH",
+                credentials: "include",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ rittypeid, description }),
+            });
+            if (!res.ok) throw new Error(`Update RitType failed (${res.status}): ${await res.text()}`);
+            setSuccessMsg("RitType updated.");
+            await fetchRitTypes();
+            closeEditRitTypeModal();
+        } catch (e) {
+            setError(e instanceof Error ? e.message : "Unknown error");
+        }
+    }
+    async function deleteRitTypeModal() {
+        if (!ritTypeEditing) return;
+        setIsEditModalDeleting(true);
+        setError(null);
+        setSuccessMsg(null);
+        try {
+            const res = await fetch(`${API_BASE}/rittypes/${ritTypeEditing.id}`, {
+                method: "DELETE",
+                credentials: "include",
+            });
+            if (!res.ok) throw new Error(`Delete RitType failed (${res.status}): ${await res.text()}`);
+            setSuccessMsg("RitType deleted.");
+            closeEditRitTypeModal();
+            await fetchRitTypes();
+        } catch (e) {
+            setError(e instanceof Error ? e.message : "Unknown error");
+        } finally {
+            setIsEditModalDeleting(false);
+        }
+    }
+
+    function openRitTypeModal() {
+        setRitTypeFormDescription("");
+        setRitTypeFormNumber(0);
+        setShowCreateRitTypeModal(true);
+    }
+    // --- HTML/JSX ---
     return (
         <main className="flex-1 bg-slate-100 overflow-y-auto h-[calc(100dvh-64px)] overflow-x-hidden">
             <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-5 pb-3">
@@ -383,7 +376,7 @@ export default function DockRitTypeManagerPage() {
                         </div>
                     </div>
                     <div className="grid grid-cols-1 xl:grid-cols-12 gap-3 min-h-[410px]">
-                        {/* RitType panel */}
+                        {/* RitTypes sidebar */}
                         <aside className="xl:col-span-3 border border-slate-300 rounded-lg p-3">
                             <h2 className="text-4xl font-bold text-[#013c59] mb-3">RitTypes</h2>
                             <div className="space-y-2 max-h-[310px] overflow-y-auto pr-1">
@@ -402,7 +395,7 @@ export default function DockRitTypeManagerPage() {
                                                 }`}
                                         >
                                             <div className="font-semibold line-clamp-2">
-                                                {rt.description}
+                                                RitType {rt.rittypeid}: {rt.description}
                                             </div>
                                             <div className={`text-sm ${active ? "text-slate-100" : "text-slate-600"}`}>{rt.dockIds.length} dock(s)</div>
                                             <div className="mt-2 flex justify-end gap-2" onClick={e => e.stopPropagation()}>
@@ -476,7 +469,9 @@ export default function DockRitTypeManagerPage() {
                                     <option value="all">All RitTypes</option>
                                     <option value="unassigned">Unassigned only</option>
                                     {ritTypes.map((rt) => (
-                                        <option key={rt.id} value={rt.id}>{rt.description}</option>
+                                        <option key={rt.id} value={rt.id}>
+                                            RitType {rt.rittypeid}: {rt.description}
+                                        </option>
                                     ))}
                                 </select>
                             </div>
@@ -491,7 +486,9 @@ export default function DockRitTypeManagerPage() {
                                                     Dock {dock.id} <span className="text-slate-700">({dock.status ? "Open" : "Closed"})</span>
                                                 </p>
                                                 <p className="text-xs text-slate-600 truncate">
-                                                    {assignedRts.length ? `RitTypes: ${assignedRts.map((r) => r.description).join(", ")}` : "Unassigned"}
+                                                    {assignedRts.length
+                                                        ? `RitTypes: ${assignedRts.map((r) => `RitType ${r.rittypeid}: ${r.description}`).join(", ")}`
+                                                        : "Unassigned"}
                                                 </p>
                                             </div>
                                             <select value={String(dock.status)} onChange={e => updateDockStatus(dock, e.target.value === "true")} disabled={updatingDockId === dock.id} className={updateSelectClass}>
@@ -520,13 +517,26 @@ export default function DockRitTypeManagerPage() {
                 </section>
             </div>
 
-            {/* Create RitType Modal (description only) */}
+            {/* Create RitType modal (number + description) */}
             {showCreateRitTypeModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: "rgba(0,0,0,0.4)" }} onClick={() => setShowCreateRitTypeModal(false)}>
                     <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-5" onClick={e => e.stopPropagation()}>
                         <h3 className="text-lg font-semibold text-[#013c59] mb-4">Create RitType</h3>
                         <div className="space-y-3">
-                            <textarea value={ritTypeFormDescription} onChange={e => setRitTypeFormDescription(e.target.value)} placeholder="Description" className={`${inputClass} min-h-[100px] resize-y`} />
+                            <input
+                                type="number"
+                                placeholder="RitType number"
+                                className={inputClass}
+                                value={ritTypeFormNumber}
+                                min={1}
+                                onChange={e => setRitTypeFormNumber(Number(e.target.value))}
+                            />
+                            <textarea
+                                value={ritTypeFormDescription}
+                                onChange={e => setRitTypeFormDescription(e.target.value)}
+                                placeholder="Description"
+                                className={`${inputClass} min-h-[100px] resize-y`}
+                            />
                             <div className="flex gap-2 pt-1">
                                 <button type="button" onClick={() => setShowCreateRitTypeModal(false)} className="w-1/2 border border-slate-300 text-slate-800 py-2 rounded-md hover:bg-slate-100">Cancel</button>
                                 <button type="button" onClick={createRitTypeFromModal} className="w-1/2 bg-indigo-600 text-white py-2 rounded-md hover:bg-indigo-700">Create</button>
@@ -536,12 +546,20 @@ export default function DockRitTypeManagerPage() {
                 </div>
             )}
 
-            {/* Edit RitType Modal */}
+            {/* Edit RitType Modal (includes rittypeid field) */}
             {ritTypeEditing && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: "rgba(0,0,0,0.4)" }} onClick={closeEditRitTypeModal}>
                     <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-5" onClick={e => e.stopPropagation()}>
                         <h3 className="text-lg font-semibold text-[#013c59] mb-4">Edit RitType</h3>
-                        <textarea value={editModalDesc} onChange={e => setEditModalDesc(e.target.value)} placeholder="Description" className={`${inputClass} min-h-[100px] resize-y`} />
+                        <input
+                            type="number"
+                            min={1}
+                            value={editModalRitTypeId ?? ""}
+                            onChange={e => setEditModalRitTypeId(Number(e.target.value))}
+                            className={inputClass}
+                            placeholder="RitType number"
+                        />
+                        <textarea value={editModalDescription} onChange={e => setEditModalDescription(e.target.value)} placeholder="Description" className={`${inputClass} min-h-[100px] resize-y`} />
                         <div className="flex gap-2 pt-4">
                             <button type="button" onClick={closeEditRitTypeModal} className="w-1/2 border border-slate-300 text-slate-800 py-2 rounded-md hover:bg-slate-100">Cancel</button>
                             <button type="button" onClick={saveEditRitType} className="w-1/2 bg-emerald-600 text-white py-2 rounded-md hover:bg-emerald-700">Update</button>
@@ -574,7 +592,6 @@ export default function DockRitTypeManagerPage() {
                 </div>
             )}
 
-            {/* Bulk Create Modal */}
             {showBulkCreateModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: "rgba(0,0,0,0.4)" }} onClick={() => setShowBulkCreateModal(false)}>
                     <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-5" onClick={e => e.stopPropagation()}>

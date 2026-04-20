@@ -5,7 +5,7 @@ use sea_orm::{
 
 pub async fn create_rittype(
     db: &DatabaseConnection,
-    rittypeid: i32
+    rittypeid: i32,
     desc: String,
 ) -> Result<rittype::Model, sea_orm::DbErr> {
     let new_rittype = rittype::ActiveModel {

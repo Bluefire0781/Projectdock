@@ -11,8 +11,8 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table("toegestane_dock")
                     .if_not_exists()
-                    .col(big_integer("dock_id").not_null())
-                    .col(big_integer("rit_type").not_null())
+                    .col(integer("dock_id").not_null())
+                    .col(integer("rit_type").not_null())
                     .primary_key(
                         Index::create()
                             .name("pk_toegestane_dock")

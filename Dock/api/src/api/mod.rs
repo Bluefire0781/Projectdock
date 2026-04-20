@@ -10,6 +10,7 @@ pub mod account_api;
 pub mod dock_api;
 pub mod leverancier_api;
 pub mod rittype_api;
+pub mod toegestanedock_api;
 
 pub fn router() -> Router<AppState> {
     let cors = CorsLayer::new()
@@ -60,6 +61,16 @@ pub fn router() -> Router<AppState> {
         .route("/rittypes", get(rittype_api::find_all))
         .route("/rittypes/{id}", patch(rittype_api::update_rittype))
         .route("/rittypes/{id}", delete(rittype_api::delete_rittype))
+        //toegestanedock
+        .route(
+            "/toegestanedock",
+            post(toegestanedock_api::create_toegestanedock),
+        )
+        .route("/toegestanedock", get(toegestanedock_api::find_all))
+        .route(
+            "/toegestanedock/{dock_nmr}/{rit_type}",
+            delete(toegestanedock_api::delete_toegestanedock),
+        )
         .layer(cors)
 }
 
