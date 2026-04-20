@@ -317,19 +317,19 @@ export default function AccountsPage() {
                     </thead>
                     <tbody>
                         {paginatedAccounts.map((account) => (
-                            <tr key={account.id}>
-                                <td colSpan={3} className="p-0">
-                                    <button
-                                        type="button"
-                                        className="w-full flex text-left items-center px-3 py-3 border-b border-slate-200 font-semibold hover:bg-slate-100 focus:bg-slate-100 transition"
-                                        style={{ background: "none", border: "none" }}
-                                        onClick={() => openUpdateModal(account)}
-                                    >
-                                        <span className="flex-1">{account.username}</span>
-                                        <span className="flex-1">{account.email ?? "-"}</span>
-                                        <span className="flex-1">{account.role ?? "user"}</span>
-                                    </button>
-                                </td>
+                            <tr
+                                key={account.id}
+                                className="hover:bg-slate-100 cursor-pointer"
+                                role="button"
+                                tabIndex={0}
+                                onClick={() => openUpdateModal(account)}
+                                onKeyDown={e => {
+                                    if (e.key === "Enter" || e.key === " ") openUpdateModal(account);
+                                }}
+                            >
+                                <td className="p-3 border-b border-slate-200 font-semibold">{account.username}</td>
+                                <td className="p-3 border-b border-slate-200">{account.email ?? "-"}</td>
+                                <td className="p-3 border-b border-slate-200">{account.role ?? "user"}</td>
                             </tr>
                         ))}
                     </tbody>
