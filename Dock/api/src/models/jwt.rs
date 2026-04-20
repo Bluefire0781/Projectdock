@@ -10,7 +10,7 @@ pub struct Claims {
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct JWT {
+pub struct Jwt {
     pub token: String,
 }
 

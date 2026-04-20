@@ -12,8 +12,7 @@ export default function Home() {
                     {/* CENTER: Nav and Button Wrapper */}
                     <div className="flex items-center gap-8">
                         <nav className="text-white font-medium flex gap-8">
-                            <a href="#" className="hover:text-[#b5b500] transition">News</a>
-                            <a href="#" className="hover:text-[#b5b500] transition">Dashboard</a>
+                            <a href="/news" className="hover:text-[#b5b500] transition">News</a>
                         </nav>
 
                         {/* Login Button */}

@@ -18,6 +18,16 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL?.trim() || "http://localhost:80
 const inputClass = "w-full border border-slate-300 rounded-md px-3 py-2 text-slate-800 placeholder:text-slate-600 focus:text-slate-900 focus:border-black focus:outline-none focus:ring-2 focus:ring-[#013c59]/30";
 const updateSelectClass = "border border-slate-500 bg-white text-slate-800 rounded px-2 py-1 text-sm shrink-0 focus:outline-none focus:ring-2 focus:ring-[#013c59]/40";
 
+// Out-of-component (best practice)
+async function createDockWithStatus(API_BASE: string, status: boolean) {
+    const res = await fetch(`${API_BASE}/docks`, {
+        method: "POST", credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+    });
+    if (!res.ok) throw new Error(`Create dock failed (${res.status}): ${await res.text()}`);
+}
+
 export default function DockRitTypeManagerPage() {
     const [allDocks, setAllDocks] = useState<Dock[]>([]);
     const [loadingDocks, setLoadingDocks] = useState(false);
@@ -107,14 +117,14 @@ export default function DockRitTypeManagerPage() {
         }
     }
 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => {
         refreshAll();
-        // eslint-disable-next-line
     }, [assignmentVersion]);
 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => {
         fetchRitTypes();
-        // eslint-disable-next-line
     }, [assignments]);
 
     // Derived state
@@ -177,7 +187,7 @@ export default function DockRitTypeManagerPage() {
                     method: "POST",
                     credentials: "include",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ dock_id: dockId, rit_type: rt.rittypeid }), // THIS IS THE CRUCIAL CHANGE!
+                    body: JSON.stringify({ dock_id: dockId, rit_type: rt.rittypeid }),
                 });
             }
             setSuccessMsg(`Assigned ${selectedDockIds.length} dock(s) in database.`);
@@ -220,19 +230,18 @@ export default function DockRitTypeManagerPage() {
         setError("This feature is now backend-managed. Unassign assignments to clear.");
     }
 
-    // ---- Dock/RitType CRUD as before ----
-    async function createDockWithStatus(status: boolean) {
-        const res = await fetch(`${API_BASE}/docks`, {
-            method: "POST", credentials: "include",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ status }),
-        });
-        if (!res.ok) throw new Error(`Create dock failed (${res.status}): ${await res.text()}`);
-    }
     async function handleCreateSingleDock() {
         setCreatingDock(true); setError(null);
-        try { await createDockWithStatus(createDockFormStatus); setShowCreateDockModal(false); setSuccessMsg("Dock created."); await fetchDocks(); } catch (e) { setError(e instanceof Error ? e.message : "Unknown error"); }
-        finally { setCreatingDock(false); }
+        try {
+            await createDockWithStatus(API_BASE, createDockFormStatus);
+            setShowCreateDockModal(false);
+            setSuccessMsg("Dock created.");
+            await fetchDocks();
+        } catch (e) {
+            setError(e instanceof Error ? e.message : "Unknown error");
+        } finally {
+            setCreatingDock(false);
+        }
     }
     async function handleBulkCreateDock() {
         setBulkCreatingDock(true); setError(null);
@@ -283,7 +292,7 @@ export default function DockRitTypeManagerPage() {
         const description = ritTypeFormDescription.trim();
         const rittypeid = ritTypeFormNumber;
         if (!description) return setError("Description is required.");
-        if (!rittypeid || isNaN(rittypeid)) return setError("RitType number is required.");
+        if (!rittypeid || Number.isNaN(rittypeid)) return setError("RitType number is required.");
         try {
             const res = await fetch(`${API_BASE}/rittypes`, {
                 method: "POST",
@@ -320,7 +329,7 @@ export default function DockRitTypeManagerPage() {
         const description = editModalDescription.trim();
         const rittypeid = editModalRitTypeId;
         if (!description) return setError("Description is required.");
-        if (!rittypeid || isNaN(rittypeid)) return setError("RitType number is required.");
+        if (!rittypeid || Number.isNaN(rittypeid)) return setError("RitType number is required.");
         try {
             const res = await fetch(`${API_BASE}/rittypes/${ritTypeEditing.id}`, {
                 method: "PATCH",
@@ -362,7 +371,73 @@ export default function DockRitTypeManagerPage() {
         setRitTypeFormNumber(0);
         setShowCreateRitTypeModal(true);
     }
-    // --- HTML/JSX ---
+
+    // --- Refactor: Extract nested ternary for docks panel display ---
+    let docksContent;
+    if (loadingDocks) {
+        docksContent = <p>Loading...</p>;
+    } else if (filteredDocks.length === 0) {
+        docksContent = <p>No docks found.</p>;
+    } else {
+        docksContent = (
+            <div className="border border-slate-300 rounded-md h-[320px] overflow-y-auto overflow-x-hidden">
+                {filteredDocks.map((dock) => {
+                    const assignedRts = dockToRitTypesMap.get(dock.id) ?? [];
+                    return (
+                        <div key={dock.id} className="grid grid-cols-[20px_minmax(0,1fr)_92px_64px] items-center gap-2 p-2 border-b border-slate-200">
+                            <input type="checkbox" checked={selectedDockIds.includes(dock.id)} onChange={() => toggleDockSelection(dock.id)} />
+                            <div className="min-w-0">
+                                <p className="font-semibold text-slate-800 truncate">
+                                    Dock {dock.id} <span className="text-slate-700">({dock.status ? "Open" : "Closed"})</span>
+                                </p>
+                                <p className="text-xs text-slate-600 truncate">
+                                    {assignedRts.length
+                                        ? `RitTypes: ${assignedRts.map((r) => `RitType ${r.rittypeid}: ${r.description}`).join(", ")}`
+                                        : "Unassigned"}
+                                </p>
+                            </div>
+                            <select value={String(dock.status)} onChange={e => updateDockStatus(dock, e.target.value === "true")} disabled={updatingDockId === dock.id} className={updateSelectClass}>
+                                <option value="true">Open</option>
+                                <option value="false">Closed</option>
+                            </select>
+                            <button
+                                onClick={() => deleteDock(dock.id)}
+                                disabled={deletingDockId === dock.id}
+                                className="border border-red-400 text-red-600 px-2 py-1 rounded text-sm"
+                                type="button"
+                            >
+                                {deletingDockId === dock.id ? "..." : "Delete"}
+                            </button>
+                        </div>
+                    );
+                })}
+            </div>
+        );
+    }
+
+    // --- Refactor: Extract nested ternary for assignment canvas assigned docks ---
+    let assignedDocksContent;
+    if (filteredAssignedDocks.length === 0) {
+        assignedDocksContent = (
+            <p className="text-sm text-slate-600">No assigned docks for this status filter.</p>
+        );
+    } else {
+        assignedDocksContent = (
+            <>
+                {filteredAssignedDocks.map((dock) => (
+                    <div
+                        key={dock.id}
+                        className="flex items-center justify-between border border-slate-300 bg-white rounded-md px-3 py-2 mb-2"
+                    >
+                        <p className="font-semibold text-slate-800">
+                            Dock {dock.id} <span className="text-slate-700">({dock.status ? "Open" : "Closed"})</span>
+                        </p>
+                    </div>
+                ))}
+            </>
+        );
+    }
+
     return (
         <main className="flex-1 bg-slate-100 overflow-y-auto h-[calc(100dvh-64px)] overflow-x-hidden">
             <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-5 pb-3">
@@ -370,10 +445,10 @@ export default function DockRitTypeManagerPage() {
                     <div className="flex items-center justify-between gap-3 mb-3">
                         <h1 className="text-3xl font-semibold text-[#013c59]">Dock ⇄ RitType Manager</h1>
                         <div className="flex items-center gap-2">
-                            <button onClick={openRitTypeModal} className="bg-indigo-600 text-white px-4 py-2 rounded-md">Create RitType</button>
-                            <button onClick={() => setShowCreateDockModal(true)} className="bg-[#013c59] text-white px-4 py-2 rounded-md">Create Dock</button>
-                            <button onClick={() => setShowBulkCreateModal(true)} className="bg-emerald-600 text-white px-4 py-2 rounded-md">Bulk Create</button>
-                            <button onClick={refreshAll} className="border border-[#013c59] text-[#013c59] px-4 py-2 rounded-md">{loadingDocks ? "Refreshing..." : "Refresh"}</button>
+                            <button onClick={openRitTypeModal} className="bg-indigo-600 text-white px-4 py-2 rounded-md" type="button">Create RitType</button>
+                            <button onClick={() => setShowCreateDockModal(true)} className="bg-[#013c59] text-white px-4 py-2 rounded-md" type="button">Create Dock</button>
+                            <button onClick={() => setShowBulkCreateModal(true)} className="bg-emerald-600 text-white px-4 py-2 rounded-md" type="button">Bulk Create</button>
+                            <button onClick={refreshAll} className="border border-[#013c59] text-[#013c59] px-4 py-2 rounded-md" type="button">{loadingDocks ? "Refreshing..." : "Refresh"}</button>
                         </div>
                     </div>
                     <div className="grid grid-cols-1 xl:grid-cols-12 gap-3 min-h-[410px]">
@@ -389,7 +464,9 @@ export default function DockRitTypeManagerPage() {
                                             role="button"
                                             tabIndex={0}
                                             onClick={() => setSelectedRitTypeId(rt.id)}
-                                            onKeyPress={e => { if (e.key === " " || e.key === "Enter") setSelectedRitTypeId(rt.id) }}
+                                            onKeyDown={(e) => {
+                                                if (e.key === "Enter" || e.key === " ") setSelectedRitTypeId(rt.id);
+                                            }}
                                             className={`w-full text-left rounded-md border px-3 py-2 transition cursor-pointer outline-none ${active
                                                 ? "bg-[#013c59] text-white border-[#013c59]"
                                                 : "bg-white border-slate-300 text-slate-800 hover:bg-slate-50"
@@ -399,10 +476,10 @@ export default function DockRitTypeManagerPage() {
                                                 RitType {rt.rittypeid}: {rt.description}
                                             </div>
                                             <div className={`text-sm ${active ? "text-slate-100" : "text-slate-600"}`}>{rt.dockIds.length} dock(s)</div>
-                                            <div className="mt-2 flex justify-end gap-2" onClick={e => e.stopPropagation()}>
+                                            <div className="mt-2 flex justify-end gap-2">
                                                 <button
                                                     type="button"
-                                                    onClick={() => beginEditRitType(rt)}
+                                                    onClick={e => { e.stopPropagation(); beginEditRitType(rt); }}
                                                     className="text-xs px-2 py-1 rounded border border-blue-400 text-blue-600 hover:bg-blue-50"
                                                 >Edit</button>
                                             </div>
@@ -410,17 +487,17 @@ export default function DockRitTypeManagerPage() {
                                     );
                                 })}
                             </div>
-                            <button onClick={clearLocalAssignments} className="mt-3 w-full border border-amber-400 text-amber-700 px-3 py-2 rounded-md">Clear all local assignments</button>
+                            <button onClick={clearLocalAssignments} className="mt-3 w-full border border-amber-400 text-amber-700 px-3 py-2 rounded-md" type="button">Clear all local assignments</button>
                         </aside>
                         {/* Assignment Canvas */}
                         <section className="xl:col-span-5 border border-slate-300 rounded-lg p-3">
                             <h2 className="text-3xl font-semibold text-[#013c59] mb-2">Assignment Canvas</h2>
                             <p className="text-slate-700 mb-2">Selected: <span className="font-semibold">{selectedRitType?.description ?? "None"}</span></p>
                             <div className="flex gap-2 mb-3">
-                                <button onClick={assignSelectedToCurrentRitType} className="bg-emerald-600 text-white px-3 py-2 rounded-md">
+                                <button onClick={assignSelectedToCurrentRitType} className="bg-emerald-600 text-white px-3 py-2 rounded-md" type="button">
                                     Assign selected →
                                 </button>
-                                <button onClick={unassignSelectedFromCurrentRitType} className="bg-amber-500 text-white px-3 py-2 rounded-md">
+                                <button onClick={unassignSelectedFromCurrentRitType} className="bg-amber-500 text-white px-3 py-2 rounded-md" type="button">
                                     ← Unassign selected
                                 </button>
                             </div>
@@ -440,19 +517,7 @@ export default function DockRitTypeManagerPage() {
                                     Assigned Docks
                                 </div>
                                 <div className="p-3 h-[285px] overflow-y-auto bg-slate-50">
-                                    {filteredAssignedDocks.map((dock) => (
-                                        <div
-                                            key={dock.id}
-                                            className="flex items-center justify-between border border-slate-300 bg-white rounded-md px-3 py-2 mb-2"
-                                        >
-                                            <p className="font-semibold text-slate-800">
-                                                Dock {dock.id} <span className="text-slate-700">({dock.status ? "Open" : "Closed"})</span>
-                                            </p>
-                                        </div>
-                                    ))}
-                                    {filteredAssignedDocks.length === 0 &&
-                                        <p className="text-sm text-slate-600">No assigned docks for this status filter.</p>
-                                    }
+                                    {assignedDocksContent}
                                 </div>
                             </div>
                         </section>
@@ -476,40 +541,10 @@ export default function DockRitTypeManagerPage() {
                                     ))}
                                 </select>
                             </div>
-                            <div className="border border-slate-300 rounded-md h-[320px] overflow-y-auto overflow-x-hidden">
-                                {filteredDocks.map((dock) => {
-                                    const assignedRts = dockToRitTypesMap.get(dock.id) ?? [];
-                                    return (
-                                        <div key={dock.id} className="grid grid-cols-[20px_minmax(0,1fr)_92px_64px] items-center gap-2 p-2 border-b border-slate-200">
-                                            <input type="checkbox" checked={selectedDockIds.includes(dock.id)} onChange={() => toggleDockSelection(dock.id)} />
-                                            <div className="min-w-0">
-                                                <p className="font-semibold text-slate-800 truncate">
-                                                    Dock {dock.id} <span className="text-slate-700">({dock.status ? "Open" : "Closed"})</span>
-                                                </p>
-                                                <p className="text-xs text-slate-600 truncate">
-                                                    {assignedRts.length
-                                                        ? `RitTypes: ${assignedRts.map((r) => `RitType ${r.rittypeid}: ${r.description}`).join(", ")}`
-                                                        : "Unassigned"}
-                                                </p>
-                                            </div>
-                                            <select value={String(dock.status)} onChange={e => updateDockStatus(dock, e.target.value === "true")} disabled={updatingDockId === dock.id} className={updateSelectClass}>
-                                                <option value="true">Open</option>
-                                                <option value="false">Closed</option>
-                                            </select>
-                                            <button
-                                                onClick={() => deleteDock(dock.id)}
-                                                disabled={deletingDockId === dock.id}
-                                                className="border border-red-400 text-red-600 px-2 py-1 rounded text-sm"
-                                            >
-                                                {deletingDockId === dock.id ? "..." : "Delete"}
-                                            </button>
-                                        </div>
-                                    );
-                                })}
-                            </div>
+                            {docksContent}
                             <div className="flex gap-2 mt-2">
-                                <button onClick={selectVisible} className="border border-slate-300 text-slate-800 px-2 py-1 rounded text-sm">Select visible</button>
-                                <button onClick={clearSelection} className="border border-slate-300 text-slate-800 px-2 py-1 rounded text-sm">Clear</button>
+                                <button onClick={selectVisible} className="border border-slate-300 text-slate-800 px-2 py-1 rounded text-sm" type="button">Select visible</button>
+                                <button onClick={clearSelection} className="border border-slate-300 text-slate-800 px-2 py-1 rounded text-sm" type="button">Clear</button>
                             </div>
                         </section>
                     </div>
@@ -520,7 +555,15 @@ export default function DockRitTypeManagerPage() {
 
             {/* Create RitType modal (number + description) */}
             {showCreateRitTypeModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: "rgba(0,0,0,0.4)" }} onClick={() => setShowCreateRitTypeModal(false)}>
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+                    style={{ backgroundColor: "rgba(0,0,0,0.4)" }}
+                    role="presentation"
+                    tabIndex={0}
+                    onClick={() => setShowCreateRitTypeModal(false)}
+                    onKeyDown={e => {
+                        if (e.key === "Escape") setShowCreateRitTypeModal(false);
+                    }}
+                >
                     <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-5" onClick={e => e.stopPropagation()}>
                         <h3 className="text-lg font-semibold text-[#013c59] mb-4">Create RitType</h3>
                         <div className="space-y-3">
@@ -549,7 +592,15 @@ export default function DockRitTypeManagerPage() {
 
             {/* Edit RitType Modal (includes rittypeid field) */}
             {ritTypeEditing && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: "rgba(0,0,0,0.4)" }} onClick={closeEditRitTypeModal}>
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+                    style={{ backgroundColor: "rgba(0,0,0,0.4)" }}
+                    role="presentation"
+                    tabIndex={0}
+                    onClick={closeEditRitTypeModal}
+                    onKeyDown={e => {
+                        if (e.key === "Escape") closeEditRitTypeModal();
+                    }}
+                >
                     <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-5" onClick={e => e.stopPropagation()}>
                         <h3 className="text-lg font-semibold text-[#013c59] mb-4">Edit RitType</h3>
                         <input
@@ -576,7 +627,15 @@ export default function DockRitTypeManagerPage() {
 
             {/* Create Dock Modal */}
             {showCreateDockModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: "rgba(0,0,0,0.4)" }} onClick={() => setShowCreateDockModal(false)}>
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+                    style={{ backgroundColor: "rgba(0,0,0,0.4)" }}
+                    role="presentation"
+                    tabIndex={0}
+                    onClick={() => setShowCreateDockModal(false)}
+                    onKeyDown={e => {
+                        if (e.key === "Escape") setShowCreateDockModal(false);
+                    }}
+                >
                     <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-5" onClick={e => e.stopPropagation()}>
                         <h3 className="text-lg font-semibold text-[#013c59] mb-4">Create Dock</h3>
                         <div className="space-y-3">
@@ -593,8 +652,17 @@ export default function DockRitTypeManagerPage() {
                 </div>
             )}
 
+            {/* Bulk Create Dock Modal */}
             {showBulkCreateModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: "rgba(0,0,0,0.4)" }} onClick={() => setShowBulkCreateModal(false)}>
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+                    style={{ backgroundColor: "rgba(0,0,0,0.4)" }}
+                    role="presentation"
+                    tabIndex={0}
+                    onClick={() => setShowBulkCreateModal(false)}
+                    onKeyDown={e => {
+                        if (e.key === "Escape") setShowBulkCreateModal(false);
+                    }}
+                >
                     <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-5" onClick={e => e.stopPropagation()}>
                         <h3 className="text-lg font-semibold text-[#013c59] mb-4">Bulk Create Docks</h3>
                         <div className="space-y-3">

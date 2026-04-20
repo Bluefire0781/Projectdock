@@ -1,4 +1,4 @@
-use crate::models::{AccountResponse, CreateAccount, JWT, Login, MeResponse, UpdateAccount};
+use crate::models::{AccountResponse, CreateAccount, Jwt, Login, MeResponse, UpdateAccount};
 use crate::service::{account_service, jwt_service};
 use crate::state::AppState;
 use axum::{
@@ -160,7 +160,7 @@ pub async fn log_in(
             Ok((
                 StatusCode::OK,
                 [(header::SET_COOKIE, set_cookie)],
-                Json(JWT { token }),
+                Json(Jwt { token }),
             ))
         }
         Err(_) => Err(StatusCode::UNAUTHORIZED),

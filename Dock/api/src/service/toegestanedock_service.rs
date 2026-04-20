@@ -11,7 +11,6 @@ pub async fn assign(
     let record = toegestanedock::ActiveModel {
         dock_id: Set(dock_nmr),
         rit_type: Set(rit_type),
-        ..Default::default()
     };
     record.insert(db).await
 }
