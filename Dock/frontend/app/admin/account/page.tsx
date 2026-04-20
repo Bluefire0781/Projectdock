@@ -306,32 +306,35 @@ export default function AccountsPage() {
         accountsContent = <p className="text-slate-700">No accounts found.</p>;
     } else {
         accountsContent = (
-            <>
-                <div className="overflow-x-auto">
-                    <table className="w-full border border-slate-300 text-slate-900">
-                        <thead className="bg-slate-200 text-slate-900">
-                            <tr>
-                                <th className="text-left p-3 border-b border-slate-300 font-semibold">Username</th>
-                                <th className="text-left p-3 border-b border-slate-300 font-semibold">Email</th>
-                                <th className="text-left p-3 border-b border-slate-300 font-semibold">Role</th>
+            <div className="overflow-x-auto">
+                <table className="w-full border border-slate-300 text-slate-900">
+                    <thead className="bg-slate-200 text-slate-900">
+                        <tr>
+                            <th className="text-left p-3 border-b border-slate-300 font-semibold">Username</th>
+                            <th className="text-left p-3 border-b border-slate-300 font-semibold">Email</th>
+                            <th className="text-left p-3 border-b border-slate-300 font-semibold">Role</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {paginatedAccounts.map((account) => (
+                            <tr key={account.id}>
+                                <td colSpan={3} className="p-0">
+                                    <button
+                                        type="button"
+                                        className="w-full flex text-left items-center px-3 py-3 border-b border-slate-200 font-semibold hover:bg-slate-100 focus:bg-slate-100 transition"
+                                        style={{ background: "none", border: "none" }}
+                                        onClick={() => openUpdateModal(account)}
+                                    >
+                                        <span className="flex-1">{account.username}</span>
+                                        <span className="flex-1">{account.email ?? "-"}</span>
+                                        <span className="flex-1">{account.role ?? "user"}</span>
+                                    </button>
+                                </td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            {paginatedAccounts.map((account) => (
-                                <tr
-                                    key={account.id}
-                                    className="hover:bg-slate-100 cursor-pointer"
-                                    onClick={() => openUpdateModal(account)}
-                                >
-                                    <td className="p-3 border-b border-slate-200 font-semibold">{account.username}</td>
-                                    <td className="p-3 border-b border-slate-200">{account.email ?? "-"}</td>
-                                    <td className="p-3 border-b border-slate-200">{account.role ?? "user"}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            </>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
         );
     }
 
@@ -370,7 +373,6 @@ export default function AccountsPage() {
                         Click a row to edit or delete an account.
                     </p>
 
-                    {/* Use the independent statement here */}
                     {accountsContent}
 
                     {successMsg && <p className="text-green-700 text-sm font-semibold mt-4">{successMsg}</p>}
@@ -378,14 +380,13 @@ export default function AccountsPage() {
                 </section>
             </div>
 
-            {/* Create Modal Accessible Backdrop */}
             {showCreateModal && (
                 <div
                     className="fixed inset-0 z-50 flex items-center justify-center p-4"
                     style={{ backgroundColor: "rgba(0, 0, 0, 0.4)" }}
                     onClick={closeCreateModal}
                     role="presentation"
-                    tabIndex={0}
+                    tabIndex={-1}
                     onKeyDown={e => {
                         if (e.key === "Escape") closeCreateModal();
                     }}
@@ -446,14 +447,13 @@ export default function AccountsPage() {
                 </div>
             )}
 
-            {/* Update Modal Accessible Backdrop */}
             {showUpdateModal && selectedAccount && (
                 <div
                     className="fixed inset-0 z-50 flex items-center justify-center p-4"
                     style={{ backgroundColor: "rgba(0, 0, 0, 0.4)" }}
                     onClick={closeUpdateModal}
                     role="presentation"
-                    tabIndex={0}
+                    tabIndex={-1}
                     onKeyDown={e => {
                         if (e.key === "Escape") closeUpdateModal();
                     }}
