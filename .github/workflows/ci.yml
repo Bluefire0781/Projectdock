@@ -42,6 +42,11 @@ jobs:
       - name: Check formatting
         run: cargo fmt
 
+      - name: Audit dependencies
+        run: |
+            cargo install cargo-audit || true
+            cargo audit
+
       - name: Clippy (deny warnings)
         run: cargo clippy --all-targets --all-features -- -D warnings
 

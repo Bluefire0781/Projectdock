@@ -66,68 +66,66 @@ export default function DockRitTypeManagerPage() {
 
     // Assignment table state from backend
     const [assignments, setAssignments] = useState<Assignment[]>([]);
-    const [assignmentVersion, setAssignmentVersion] = useState(0);
+    // No need for assignmentVersion anymore!
 
-    async function fetchDocks() {
+    // ------------------------------
+    // NEW: Parallel fetch-all logic
+    // ------------------------------
+    async function fetchAllInitialData() {
         setLoadingDocks(true);
+        setError(null);
         try {
-            const res = await fetch(`${API_BASE}/docks`, { method: "GET", credentials: "include" });
-            if (!res.ok) throw new Error(`Failed to fetch docks (${res.status}): ${await res.text()}`);
-            const data = (await res.json()) as Dock[];
-            setAllDocks(data);
-            const valid = new Set(data.map((d) => d.id));
+            const [docksRes, assignmentsRes, ritTypesRes] = await Promise.all([
+                fetch(`${API_BASE}/docks`, { method: "GET", credentials: "include" }),
+                fetch(`${API_BASE}/toegestanedock`, { method: "GET", credentials: "include" }),
+                fetch(`${API_BASE}/rittypes`, { method: "GET", credentials: "include" }),
+            ]);
+            if (!docksRes.ok) throw new Error(`Failed to fetch docks (${docksRes.status}): ${await docksRes.text()}`);
+            if (!assignmentsRes.ok) throw new Error(`Failed to fetch assignments (${assignmentsRes.status}): ${await assignmentsRes.text()}`);
+            if (!ritTypesRes.ok) throw new Error(`Failed to fetch rittypes (${ritTypesRes.status}): ${await ritTypesRes.text()}`);
+
+            const [docks, assignmentsData, ritTypesApiData] = await Promise.all([
+                docksRes.json(),
+                assignmentsRes.json(),
+                ritTypesRes.json(),
+            ]);
+            setAllDocks(docks);
+            setAssignments(assignmentsData);
+
+            // Rebuild ritTypes with assignments mapping:
+            const ritTypesMapped = ritTypesApiData.map((r: RitTypeApi) => ({
+                id: String(r.id),
+                rittypeid: r.rittypeid,
+                description: r.description,
+                dockIds: assignmentsData.filter((a: Assignment) => a.rit_type === r.rittypeid).map((a: Assignment) => a.dock_id),
+            }));
+            setRitTypes(ritTypesMapped);
+
+            // handle initial selection if needed
+            if (!selectedRitTypeId && ritTypesMapped.length) {
+                setSelectedRitTypeId(ritTypesMapped[0].id);
+            } else if (selectedRitTypeId && !ritTypesMapped.some((r) => r.id === selectedRitTypeId)) {
+                setSelectedRitTypeId(ritTypesMapped[0]?.id ?? null);
+            }
+
+            const valid = new Set(docks.map((d: Dock) => d.id));
             setSelectedDockIds((prev) => prev.filter((id) => valid.has(id)));
+        } catch (e) {
+            setError(e instanceof Error ? e.message : "Unknown error");
         } finally {
             setLoadingDocks(false);
         }
     }
 
-    async function fetchRitTypes() {
-        const res = await fetch(`${API_BASE}/rittypes`, { method: "GET", credentials: "include" });
-        if (!res.ok) throw new Error(`Failed to fetch rittypes (${res.status}): ${await res.text()}`);
-        const apiData = (await res.json()) as RitTypeApi[];
-        const mapped: RitType[] = apiData.map((r) => ({
-            id: String(r.id),
-            rittypeid: r.rittypeid,
-            description: r.description,
-            dockIds: assignments.filter(a => a.rit_type === r.rittypeid).map(a => a.dock_id),
-        }));
-        setRitTypes(mapped);
-
-        if (!selectedRitTypeId && mapped.length) {
-            setSelectedRitTypeId(mapped[0].id);
-        } else if (selectedRitTypeId && !mapped.some((r) => r.id === selectedRitTypeId)) {
-            setSelectedRitTypeId(mapped[0]?.id ?? null);
-        }
-    }
-
-    async function fetchAssignments() {
-        const res = await fetch(`${API_BASE}/toegestanedock`, { method: "GET", credentials: "include" });
-        if (!res.ok) throw new Error(`Failed to fetch assignments (${res.status}): ${await res.text()}`);
-        const apiData = (await res.json()) as Assignment[];
-        setAssignments(apiData);
-    }
-
-    async function refreshAll() {
-        setError(null);
-        try {
-            await Promise.all([fetchDocks(), fetchAssignments()]);
-        } catch (e) {
-            setError(e instanceof Error ? e.message : "Unknown error");
-        }
-    }
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // -----------------------------------------------
+    // Only ONE effect needed for initial page mount:
+    // -----------------------------------------------
     useEffect(() => {
-        refreshAll();
-    }, [assignmentVersion]);
+        fetchAllInitialData();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    useEffect(() => {
-        fetchRitTypes();
-    }, [assignments]);
-
-    // Derived state
+    // Derived state logic (unchanged)
     const sortedAllDocks = useMemo(() => [...allDocks].sort((a, b) => a.id - b.id), [allDocks]);
     const selectedRitType = useMemo(
         () => ritTypes.find((r) => r.id === selectedRitTypeId) ?? null,
@@ -175,7 +173,7 @@ export default function DockRitTypeManagerPage() {
         [filteredDocks, assignedDockSet]
     );
 
-    // Assignment actions (fix: use dock_id as key, not dock_nmr)
+    // Assignment actions (backend-managed)
     async function assignSelectedToCurrentRitType() {
         if (!selectedRitTypeId) return setError("Select a RitType first.");
         if (!selectedDockIds.length) return setError("Select at least one dock.");
@@ -191,7 +189,8 @@ export default function DockRitTypeManagerPage() {
                 });
             }
             setSuccessMsg(`Assigned ${selectedDockIds.length} dock(s) in database.`);
-            setAssignmentVersion(v => v + 1);
+            // Refresh all data to get the updated assignments
+            await fetchAllInitialData();
         } catch (e) {
             setError(e instanceof Error ? e.message : "Unknown error");
         }
@@ -209,7 +208,7 @@ export default function DockRitTypeManagerPage() {
                 });
             }
             setSuccessMsg(`Unassigned ${selectedDockIds.length} dock(s) in database.`);
-            setAssignmentVersion(v => v + 1);
+            await fetchAllInitialData();
         } catch (e) {
             setError(e instanceof Error ? e.message : "Unknown error");
         }
@@ -226,9 +225,6 @@ export default function DockRitTypeManagerPage() {
         setSelectedDockIds((prev) => Array.from(new Set([...prev, ...visibleIds])));
     }
     function clearSelection() { setSelectedDockIds([]); }
-    function clearLocalAssignments() {
-        setError("This feature is now backend-managed. Unassign assignments to clear.");
-    }
 
     async function handleCreateSingleDock() {
         setCreatingDock(true); setError(null);
@@ -236,7 +232,7 @@ export default function DockRitTypeManagerPage() {
             await createDockWithStatus(API_BASE, createDockFormStatus);
             setShowCreateDockModal(false);
             setSuccessMsg("Dock created.");
-            await fetchDocks();
+            await fetchAllInitialData();
         } catch (e) {
             setError(e instanceof Error ? e.message : "Unknown error");
         } finally {
@@ -257,7 +253,7 @@ export default function DockRitTypeManagerPage() {
             ));
             const failed = results.filter((r) => !r.ok);
             if (failed.length) throw new Error(`${failed.length}/${bulkCreateCount} bulk creates failed.`);
-            setShowBulkCreateModal(false); setSuccessMsg(`${bulkCreateCount} docks created.`); await fetchDocks();
+            setShowBulkCreateModal(false); setSuccessMsg(`${bulkCreateCount} docks created.`); await fetchAllInitialData();
         } catch (e) { setError(e instanceof Error ? e.message : "Unknown error"); }
         finally { setBulkCreatingDock(false); }
     }
@@ -271,7 +267,15 @@ export default function DockRitTypeManagerPage() {
                 body: JSON.stringify({ status: nextStatus }),
             });
             if (!res.ok) throw new Error(`Update dock failed (${res.status}): ${await res.text()}`);
-            setSuccessMsg(`Dock ${dock.id} updated.`); await fetchDocks();
+            // Optimistic state update to avoid flicker:
+            setAllDocks(prev =>
+                prev.map(d =>
+                    d.id === dock.id ? { ...d, status: nextStatus } : d
+                )
+            );
+            setSuccessMsg(`Dock ${dock.id} updated.`);
+            // Optionally, re-fetch all to update derived state:
+            // await fetchAllInitialData();
         } catch (e) { setError(e instanceof Error ? e.message : "Unknown error"); }
         finally { setUpdatingDockId(null); }
     }
@@ -283,9 +287,12 @@ export default function DockRitTypeManagerPage() {
             });
             if (!res.ok) throw new Error(`Delete dock failed (${res.status}): ${await res.text()}`);
             setSuccessMsg(`Dock ${dockId} deleted.`);
-            await fetchDocks();
-        } catch (e) { setError(e instanceof Error ? e.message : "Unknown error"); }
-        finally { setDeletingDockId(null); }
+            await fetchAllInitialData();
+        } catch (e) {
+            setError(e instanceof Error ? e.message : "Unknown error");
+        } finally {
+            setDeletingDockId(null);
+        }
     }
 
     async function createRitTypeFromModal() {
@@ -305,7 +312,7 @@ export default function DockRitTypeManagerPage() {
             setRitTypeFormDescription("");
             setRitTypeFormNumber(0);
             setSuccessMsg("RitType created.");
-            await fetchRitTypes();
+            await fetchAllInitialData();
         } catch (e) {
             setError(e instanceof Error ? e.message : "Unknown error");
         }
@@ -337,9 +344,9 @@ export default function DockRitTypeManagerPage() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ rittypeid, description }),
             });
-            if (!res.ok) throw new Error(`Update RitType failed (${res.status}): ${await res.text()}`);
-            setSuccessMsg("RitType updated.");
-            await fetchRitTypes();
+            if (!res.ok) throw new Error(`Update IORtype failed (${res.status}): ${await res.text()}`);
+            setSuccessMsg("IORtype updated.");
+            await fetchAllInitialData();
             closeEditRitTypeModal();
         } catch (e) {
             setError(e instanceof Error ? e.message : "Unknown error");
@@ -355,10 +362,10 @@ export default function DockRitTypeManagerPage() {
                 method: "DELETE",
                 credentials: "include",
             });
-            if (!res.ok) throw new Error(`Delete RitType failed (${res.status}): ${await res.text()}`);
-            setSuccessMsg("RitType deleted.");
+            if (!res.ok) throw new Error(`Delete IORtype failed (${res.status}): ${await res.text()}`);
+            setSuccessMsg("IORtype deleted.");
             closeEditRitTypeModal();
-            await fetchRitTypes();
+            await fetchAllInitialData();
         } catch (e) {
             setError(e instanceof Error ? e.message : "Unknown error");
         } finally {
@@ -392,7 +399,7 @@ export default function DockRitTypeManagerPage() {
                                 </p>
                                 <p className="text-xs text-slate-600 truncate">
                                     {assignedRts.length
-                                        ? `RitTypes: ${assignedRts.map((r) => `RitType ${r.rittypeid}: ${r.description}`).join(", ")}`
+                                        ? `${assignedRts.map((r) => `${r.rittypeid}: ${r.description}`).join(", ")}`
                                         : "Unassigned"}
                                 </p>
                             </div>
@@ -443,18 +450,23 @@ export default function DockRitTypeManagerPage() {
             <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-5 pb-3">
                 <section className="bg-white rounded-xl shadow p-4 sm:p-5 border border-slate-200">
                     <div className="flex items-center justify-between gap-3 mb-3">
-                        <h1 className="text-3xl font-semibold text-[#013c59]">Dock ⇄ RitType Manager</h1>
+                        <h1 className="text-3xl font-semibold text-[#013c59]">Dock ⇄ IORtype Manager</h1>
                         <div className="flex items-center gap-2">
-                            <button onClick={openRitTypeModal} className="bg-indigo-600 text-white px-4 py-2 rounded-md" type="button">Create RitType</button>
+                            <button onClick={openRitTypeModal} className="bg-indigo-600 text-white px-4 py-2 rounded-md" type="button">Create IORtype</button>
                             <button onClick={() => setShowCreateDockModal(true)} className="bg-[#013c59] text-white px-4 py-2 rounded-md" type="button">Create Dock</button>
                             <button onClick={() => setShowBulkCreateModal(true)} className="bg-emerald-600 text-white px-4 py-2 rounded-md" type="button">Bulk Create</button>
-                            <button onClick={refreshAll} className="border border-[#013c59] text-[#013c59] px-4 py-2 rounded-md" type="button">{loadingDocks ? "Refreshing..." : "Refresh"}</button>
-                        </div>
+                            <button
+                                onClick={fetchAllInitialData}
+                                className="border border-[#013c59] text-[#013c59] px-4 py-2 rounded-md"
+                                type="button"
+                            >
+                                {loadingDocks ? "Refreshing..." : "Refresh"}
+                            </button>                        </div>
                     </div>
                     <div className="grid grid-cols-1 xl:grid-cols-12 gap-3 min-h-[410px]">
                         {/* RitTypes sidebar */}
                         <aside className="xl:col-span-3 border border-slate-300 rounded-lg p-3">
-                            <h2 className="text-4xl font-bold text-[#013c59] mb-3">RitTypes</h2>
+                            <h2 className="text-4xl font-bold text-[#013c59] mb-3">IORtypes</h2>
                             <div className="space-y-2 max-h-[310px] overflow-y-auto pr-1">
                                 {ritTypes.map((rt) => {
                                     const active = rt.id === selectedRitTypeId;
@@ -473,7 +485,7 @@ export default function DockRitTypeManagerPage() {
                                                 }`}
                                         >
                                             <div className="font-semibold line-clamp-2">
-                                                RitType {rt.rittypeid}: {rt.description}
+                                                {rt.rittypeid}: {rt.description}
                                             </div>
                                             <div className={`text-sm ${active ? "text-slate-100" : "text-slate-600"}`}>{rt.dockIds.length} dock(s)</div>
                                             <div className="mt-2 flex justify-end gap-2">
@@ -487,7 +499,6 @@ export default function DockRitTypeManagerPage() {
                                     );
                                 })}
                             </div>
-                            <button onClick={clearLocalAssignments} className="mt-3 w-full border border-amber-400 text-amber-700 px-3 py-2 rounded-md" type="button">Clear all local assignments</button>
                         </aside>
                         {/* Assignment Canvas */}
                         <section className="xl:col-span-5 border border-slate-300 rounded-lg p-3">
@@ -532,11 +543,11 @@ export default function DockRitTypeManagerPage() {
                                     <option value='closed'>Closed</option>
                                 </select>
                                 <select className={inputClass} value={ritTypeFilter} onChange={e => setRitTypeFilter(e.target.value)}>
-                                    <option value='all'>All RitTypes</option>
+                                    <option value='all'>All IORtypes</option>
                                     <option value='unassigned'>Unassigned only</option>
                                     {ritTypes.map((rt) => (
                                         <option key={rt.id} value={rt.id}>
-                                            RitType {rt.rittypeid}: {rt.description}
+                                            {rt.rittypeid}: {rt.description}
                                         </option>
                                     ))}
                                 </select>
