@@ -6,9 +6,9 @@ use serde::Serialize;
 #[sea_orm(table_name = "afspraak")]
 pub struct Model {
     #[sea_orm(primary_key)]
-    pub afspraak_id: i64, //pk
-    pub rit_nmr: i64,  //fk
-    pub dock_nmr: i16, //fk
+    pub afspraak_id: i32, //pk
+    pub rit_nmr: i32,  //fk
+    pub dock_nmr: i32, //fk
     pub starttijd: String,
     pub eindtijd: String,
     pub landing_type: String,

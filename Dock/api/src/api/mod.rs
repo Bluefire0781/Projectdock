@@ -9,6 +9,7 @@ use tower_http::cors::CorsLayer;
 pub mod account_api;
 pub mod dock_api;
 pub mod leverancier_api;
+pub mod rit_api;
 pub mod rittype_api;
 pub mod toegestanedock_api;
 
@@ -66,7 +67,11 @@ pub fn router() -> Router<AppState> {
                 .route(
                     "/toegestanedock/{dock_nmr}/{rit_type}",
                     delete(toegestanedock_api::delete_toegestanedock),
-                ),
+                )
+                .route("/rits", post(rit_api::create_rit))
+                .route("/rits", get(rit_api::find_all))
+                .route("/rits/{id}", patch(rit_api::update_rit))
+                .route("/rits/{id}", delete(rit_api::delete_rit)),
         )
         .layer(cors)
 }

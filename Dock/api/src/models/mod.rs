@@ -8,10 +8,10 @@ pub mod rittype;
 pub mod toegestanedock;
 
 pub use account::*;
-pub use jwt::*;
-//pub use afspraak::*;
+pub use afspraak::*;
 pub use dock::*;
+pub use jwt::*;
 pub use leverancier::*;
+pub use rit::*;
 pub use rittype::*;
-//pub use rit::*;
 pub use toegestanedock::*;

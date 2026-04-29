@@ -21,6 +21,7 @@ pub struct UpdateLeverancier {
 
 #[derive(Serialize)]
 pub struct LeverancierResponse {
+    pub id: i32,
     pub leverancier_id: String,
     pub leverancier_naam: Option<String>,
     pub transporteur: Option<String>,

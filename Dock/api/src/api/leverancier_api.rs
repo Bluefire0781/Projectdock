@@ -27,6 +27,7 @@ pub async fn create_leverancier(
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     let response = LeverancierResponse {
+        id: leverancier.id,
         leverancier_id: leverancier.leverancier_id,
         leverancier_naam: leverancier.leverancier_naam,
         transporteur: leverancier.transporteur,
@@ -53,6 +54,7 @@ pub async fn find_all(
     let response: Vec<LeverancierResponse> = leveranciers
         .into_iter()
         .map(|l| LeverancierResponse {
+            id: l.id,
             leverancier_id: l.leverancier_id,
             leverancier_naam: l.leverancier_naam,
             transporteur: l.transporteur,
@@ -77,6 +79,7 @@ pub async fn find_leverancier(
         .ok_or(StatusCode::NOT_FOUND)?;
 
     Ok(Json(LeverancierResponse {
+        id: leverancier.id,
         leverancier_id: leverancier.leverancier_id,
         leverancier_naam: leverancier.leverancier_naam,
         transporteur: leverancier.transporteur,
@@ -123,6 +126,7 @@ pub async fn update_leverancier(
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     let response = LeverancierResponse {
+        id: updated.id,
         leverancier_id: updated.leverancier_id,
         leverancier_naam: updated.leverancier_naam,
         transporteur: updated.transporteur,

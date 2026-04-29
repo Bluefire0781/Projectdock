@@ -3,5 +3,6 @@ pub mod dock_service;
 pub mod hasher_service;
 pub mod jwt_service;
 pub mod leverancier_service;
+pub mod rit_service;
 pub mod rittype_service;
 pub mod toegestanedock_service;

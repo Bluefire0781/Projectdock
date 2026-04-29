@@ -31,4 +31,4 @@ rand = "0.10.0" # rando
 
 #JWT
 jsonwebtoken = { version = "10.3.0", default-features = false, features = ["rust_crypto"] }
-chrono = { version = "0.4", features = ["clock"] } #time
+chrono = { version = "0.4", features = ["clock", "serde"] } #time

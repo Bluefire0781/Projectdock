@@ -26,7 +26,7 @@ export default function AdminLayout({
                             <a href="/admin/account" className="hover:text-[#b5b500] transition">Account</a>
                             <a href="/admin/leverancier" className="hover:text-[#b5b500] transition">Leverancier</a>
                             <a href="/admin/dock" className="hover:text-[#b5b500] transition">Dock</a>
-                            <a href="#" className="hover:text-[#b5b500] transition">Orders</a>
+                            <a href="/admin/order" className="hover:text-[#b5b500] transition">Orders</a>
                             <a href="#" className="hover:text-[#b5b500] transition">Kalender</a>
                             <a href="#" className="hover:text-[#b5b500] transition">News</a>
                             <a href="/admin" className="hover:text-[#b5b500] transition">Dashboard</a>

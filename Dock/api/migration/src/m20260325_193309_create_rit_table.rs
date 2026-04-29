@@ -13,14 +13,14 @@ impl MigrationTrait for Migration {
                     .if_not_exists()
                     .col(pk_auto("id"))
                     .col(string("rit_id").not_null().unique_key())
-                    .col(big_integer("leverancier_id").not_null())
-                    .col(tiny_integer("pellet_tot").not_null())
-                    .col(tiny_integer("rit_type").not_null())
+                    .col(integer("leverancier_nmr").not_null())
+                    .col(integer("pellet_tot").not_null())
+                    .col(integer("rit_type").not_null())
                     .col(date("datum").not_null())
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_rit_leverancier")
-                            .from("rit", "leverancier_id")
+                            .from("rit", "leverancier_nmr")
                             .to("leverancier", "id")
                             .on_delete(ForeignKeyAction::Cascade),
                     )
