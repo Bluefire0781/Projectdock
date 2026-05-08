@@ -1,4 +1,4 @@
-use crate::models::{CreateLeverancier, LeverancierResponse, UpdateLeverancier};
+use crate::models::leverancier::{CreateLeverancier, LeverancierResponse, UpdateLeverancier};
 use crate::service::{jwt_service, leverancier_service};
 use crate::state::AppState;
 use axum::{

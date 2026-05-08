@@ -30,6 +30,17 @@ pub struct RitResponse {
     pub datum: NaiveDate,
 }
 
+#[derive(Serialize)]
+pub struct RitResponsewithaf {
+    pub id: i32,
+    pub rit_id: String,
+    pub leverancier_nmr: i32,
+    pub pellet_tot: i32,
+    pub rit_type: i32,
+    pub datum: NaiveDate,
+    pub afspraak_starttijd: Option<DateTime>,
+}
+
 #[sea_orm::model]
 #[derive(Serialize, Debug, Clone, PartialEq, Eq, DeriveEntityModel, Default)]
 #[sea_orm(table_name = "rit")]

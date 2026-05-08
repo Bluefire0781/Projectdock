@@ -1,4 +1,5 @@
-use crate::models::{AccountResponse, CreateAccount, Jwt, Login, MeResponse, UpdateAccount};
+use crate::models::account::{AccountResponse, CreateAccount, Login, UpdateAccount};
+use crate::models::jwt::{Jwt, MeResponse};
 use crate::service::{account_service, jwt_service};
 use crate::state::AppState;
 use axum::{

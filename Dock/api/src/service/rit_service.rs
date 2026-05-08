@@ -1,4 +1,4 @@
-use crate::models::rit;
+use crate::models::{afspraak, rit};
 use chrono::NaiveDate;
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, DatabaseConnection, DeleteResult, EntityTrait, QueryFilter, Set,
@@ -26,9 +26,13 @@ pub async fn create_rit(
 }
 
 // FIND ALL
-pub async fn find_all(db: &DatabaseConnection) -> Result<Vec<rit::Model>, sea_orm::DbErr> {
-    let rits = rit::Entity::find().all(db).await?;
-    Ok(rits)
+pub async fn find_all(
+    db: &DatabaseConnection,
+) -> Result<Vec<(rit::Model, Vec<afspraak::Model>)>, sea_orm::DbErr> {
+    rit::Entity::find()
+        .find_with_related(afspraak::Entity)
+        .all(db)
+        .await
 }
 
 // FIND BY ONE (by id)

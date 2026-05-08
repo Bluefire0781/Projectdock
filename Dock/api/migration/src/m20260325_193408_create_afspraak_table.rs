@@ -12,11 +12,11 @@ impl MigrationTrait for Migration {
                     .table("afspraak")
                     .if_not_exists()
                     .col(integer("afspraak_id").not_null().primary_key())
-                    .col(integer("rit_nmr").not_null())
+                    .col(integer("rit_nmr").not_null().unique_key())
                     .col(integer("dock_nmr").not_null())
                     .col(date_time("starttijd").not_null())
                     .col(date_time("eindtijd").not_null())
-                    .col(string("laning_type").not_null())
+                    .col(string("landing_type").not_null())
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_afspraak_rit")

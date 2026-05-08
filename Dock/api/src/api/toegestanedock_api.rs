@@ -1,4 +1,4 @@
-use crate::models::{CreateToegestanedock, ToegestanedockResponse};
+use crate::models::toegestanedock::{CreateToegestanedock, ToegestanedockResponse};
 use crate::service::{jwt_service, toegestanedock_service};
 use crate::state::AppState;
 use axum::{

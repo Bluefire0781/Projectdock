@@ -1,4 +1,4 @@
-use crate::models::{CreateDock, DockResponse, UpdateDock};
+use crate::models::dock::{CreateDock, DockResponse, UpdateDock};
 use crate::service::{dock_service, jwt_service};
 use crate::state::AppState;
 use axum::{

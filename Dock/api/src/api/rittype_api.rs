@@ -1,4 +1,4 @@
-use crate::models::{CreateRitType, RitTypeResponse, UpdateRitType};
+use crate::models::rittype::{CreateRitType, RitTypeResponse, UpdateRitType};
 use crate::service::{jwt_service, rittype_service};
 use crate::state::AppState;
 use axum::{

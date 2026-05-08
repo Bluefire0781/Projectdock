@@ -7,10 +7,11 @@ use serde::Serialize;
 pub struct Model {
     #[sea_orm(primary_key)]
     pub afspraak_id: i32, //pk
-    pub rit_nmr: i32,  //fk
+    #[sea_orm(unique)]
+    pub rit_nmr: i32,
     pub dock_nmr: i32, //fk
-    pub starttijd: String,
-    pub eindtijd: String,
+    pub starttijd: DateTime,
+    pub eindtijd: DateTime,
     pub landing_type: String,
     #[sea_orm(belongs_to, from = "rit_nmr", to = "id")]
     pub rit: HasOne<super::rit::Entity>,

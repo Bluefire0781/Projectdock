@@ -10,6 +10,9 @@ type Rit = {
     pellet_tot: number;
     rit_type: number;
     datum: string;
+
+    // backend DateTime serializes to string in JSON
+    afspraak_starttijd?: string | null;
 };
 
 type Leverancier = {
@@ -78,6 +81,7 @@ export default function RitPage() {
         fetchRit();
         fetchLeveranciers();
         fetchRitTypes();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     async function fetchRit() {
@@ -85,7 +89,7 @@ export default function RitPage() {
         setError(null);
         try {
             const res = await fetch(`${API_BASE}/rits`, { credentials: "include" });
-            if (!res.ok) throw new Error(await res.text() || `Failed to fetch ior's (${res.status})`);
+            if (!res.ok) throw new Error((await res.text()) || `Failed to fetch ior's (${res.status})`);
             setRits(await res.json());
         } catch (e: any) {
             setError("Failed to fetch ior's" + (e?.message ? ": " + e.message : ""));
@@ -124,11 +128,39 @@ export default function RitPage() {
         return t ? `${t.rittypeid} - ${t.description}` : "";
     }
 
+    // Local NL time (Europe/Amsterdam) formatting: display only HH:MM
+    // NOTE: This will interpret the timestamp based on what the backend sends:
+    // - If backend sends ISO with timezone (e.g. ...Z or +02:00): perfect.
+    // - If backend sends "2026-04-29 13:00:00" (no timezone): JS parsing can be inconsistent.
+    //   In that case, we fall back to extracting HH:MM from the string.
+    function formatStarttijd(value?: string | null) {
+        if (!value) return "-";
+
+        const d = new Date(value);
+        if (!isNaN(d.getTime())) {
+            return new Intl.DateTimeFormat("nl-NL", {
+                timeZone: "Europe/Amsterdam",
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: false,
+            }).format(d);
+        }
+
+        // Fallback: extract HH:MM if parsing fails
+        const m = value.match(/(\d{2}):(\d{2})/);
+        if (m) return `${m[1]}:${m[2]}`;
+
+        return value;
+    }
+
     // --- Table filtering ---
-    const filteredRits = rits.filter(rit => (
-        rit.rit_id?.toLowerCase().includes(search.toLowerCase()) ||
-        getLevName(rit.leverancier_nmr).toLowerCase().includes(search.toLowerCase())
-    ));
+    const filteredRits = rits.filter(rit => {
+        const q = search.toLowerCase();
+        return (
+            rit.rit_id?.toLowerCase().includes(q) ||
+            getLevName(rit.leverancier_nmr).toLowerCase().includes(q)
+        );
+    });
 
     // --- CSV Import ---
     function parseCsv(text: string) {
@@ -136,8 +168,8 @@ export default function RitPage() {
         if (lines.length < 2) return [];
         const headers = lines[0].split(",").map(h => h.trim());
         return lines.slice(1).map(line => {
-            const values = [];
-            let current = '', inQuotes = false;
+            const values: string[] = [];
+            let current = "", inQuotes = false;
             for (let i = 0; i < line.length; ++i) {
                 if (line[i] === '"') {
                     if (line[i + 1] === '"') { current += '"'; ++i; }
@@ -145,7 +177,7 @@ export default function RitPage() {
                 }
                 else if (line[i] === "," && !inQuotes) {
                     values.push(current);
-                    current = '';
+                    current = "";
                 } else {
                     current += line[i];
                 }
@@ -292,7 +324,7 @@ export default function RitPage() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload)
             });
-            if (!res.ok) throw new Error(await res.text() || `Create failed (${res.status})`);
+            if (!res.ok) throw new Error((await res.text()) || `Create failed (${res.status})`);
             setSuccess("Rit succesvol aangemaakt.");
             closeCreateModal();
             await fetchRit();
@@ -402,7 +434,7 @@ export default function RitPage() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload)
             });
-            if (!res.ok) throw new Error(await res.text() || "Kon rit niet bijwerken.");
+            if (!res.ok) throw new Error((await res.text()) || "Kon rit niet bijwerken.");
             setSuccess("Rit bijgewerkt.");
             closeEditModal();
             await fetchRit();
@@ -472,9 +504,12 @@ export default function RitPage() {
                             >Refresh</button>
                         </div>
                     </div>
+
                     {importSuccess && <p className="text-green-700 text-sm font-semibold mt-2">{importSuccess}</p>}
                     {importError && <p className="text-red-700 text-sm font-semibold mt-2">{importError}</p>}
+
                     <p className="text-xs text-slate-700 mb-4">Click a row to edit or delete.</p>
+
                     {loading ? (
                         <p className="text-slate-700">Loading...</p>
                     ) : filteredRits.length === 0 ? (
@@ -490,6 +525,7 @@ export default function RitPage() {
                                             <th className="text-left p-3 border-b border-slate-300 font-semibold">Pellet Tot</th>
                                             <th className="text-left p-3 border-b border-slate-300 font-semibold">IOR Type</th>
                                             <th className="text-left p-3 border-b border-slate-300 font-semibold">Datum</th>
+                                            <th className="text-left p-3 border-b border-slate-300 font-semibold">Starttijd</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -503,11 +539,15 @@ export default function RitPage() {
                                                 <td className="p-3 border-b border-slate-200">{row.pellet_tot}</td>
                                                 <td className="p-3 border-b border-slate-200">{getTypeLabel(row.rit_type)}</td>
                                                 <td className="p-3 border-b border-slate-200 font-mono">{row.datum}</td>
+                                                <td className="p-3 border-b border-slate-200 font-mono">
+                                                    {formatStarttijd(row.afspraak_starttijd)}
+                                                </td>
                                             </tr>
                                         ))}
                                     </tbody>
                                 </table>
                             </div>
+
                             {/* Pagination */}
                             <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-300">
                                 <p className="text-sm text-slate-700">
@@ -537,6 +577,7 @@ export default function RitPage() {
                             </div>
                         </>
                     )}
+
                     {success && <p className="text-green-700 text-sm font-semibold mt-4">{success}</p>}
                     {error && <p className="text-red-700 text-sm font-semibold mt-4">{error}</p>}
                 </section>
@@ -661,6 +702,12 @@ export default function RitPage() {
                         <h3 className="text-lg font-semibold text-[#013c59] mb-4">
                             Update #{selectedRit.rit_id}
                         </h3>
+
+                        <div className="text-sm text-slate-700 mb-3">
+                            <span className="font-semibold">Starttijd:</span>{" "}
+                            <span className="font-mono">{formatStarttijd(selectedRit.afspraak_starttijd)}</span>
+                        </div>
+
                         <form onSubmit={handleUpdate} className="space-y-3">
                             <input
                                 type="text"

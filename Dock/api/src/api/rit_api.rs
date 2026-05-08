@@ -1,4 +1,4 @@
-use crate::models::{CreateRit, RitResponse, UpdateRit};
+use crate::models::rit::{CreateRit, RitResponse, RitResponsewithaf, UpdateRit};
 use crate::service::{jwt_service, rit_service};
 use crate::state::AppState;
 use axum::{
@@ -40,22 +40,27 @@ pub async fn create_rit(
 pub async fn find_all(
     State(state): State<AppState>,
     headers: HeaderMap,
-) -> Result<(StatusCode, Json<Vec<RitResponse>>), StatusCode> {
+) -> Result<(StatusCode, Json<Vec<RitResponsewithaf>>), StatusCode> {
     jwt_service::require_role(&headers, &state.jwt_secret, &["admin"][..])?;
 
-    let rits = rit_service::find_all(&state.db)
+    let rows = rit_service::find_all(&state.db)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let response: Vec<RitResponse> = rits
+    let response: Vec<RitResponsewithaf> = rows
         .into_iter()
-        .map(|r| RitResponse {
-            id: r.id,
-            rit_id: r.rit_id,
-            leverancier_nmr: r.leverancier_nmr,
-            pellet_tot: r.pellet_tot,
-            rit_type: r.rit_type,
-            datum: r.datum,
+        .map(|(r, afspraken)| {
+            let afspraak_starttijd = afspraken.get(0).map(|a| a.starttijd.clone()); // clone because it's a String
+
+            RitResponsewithaf {
+                id: r.id,
+                rit_id: r.rit_id,
+                leverancier_nmr: r.leverancier_nmr,
+                pellet_tot: r.pellet_tot,
+                rit_type: r.rit_type,
+                datum: r.datum,
+                afspraak_starttijd,
+            }
         })
         .collect();
 
