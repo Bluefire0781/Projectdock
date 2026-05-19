@@ -18,7 +18,7 @@ export default function LoginPage() {
     const [error, setError] = useState("");
 
     const API_BASE =
-        process.env.NEXT_PUBLIC_API_URL?.trim() || "http://localhost:8080";
+        process.env.NEXT_PUBLIC_API_URL?.trim() || "http://app.local/api";
 
     const inputClass =
         "w-full border border-slate-300 rounded-md px-3 py-2 !text-slate-900 placeholder:text-slate-400 focus:!text-slate-900 focus:border-black focus:outline-none focus:ring-2 focus:ring-[#013c59]/30";

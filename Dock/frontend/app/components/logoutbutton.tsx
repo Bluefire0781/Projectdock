@@ -16,7 +16,7 @@ export default function AccountMenu() {
     const menuRef = useRef<HTMLDivElement>(null);
 
     const API_BASE =
-        process.env.NEXT_PUBLIC_API_URL?.trim() || "http://localhost:8080";
+        process.env.NEXT_PUBLIC_API_URL?.trim() || "http://app.local/api";
 
     useEffect(() => {
         async function fetchMe() {

@@ -87,7 +87,7 @@ export default function Home() {
         account_search: useRef<HTMLInputElement>(null),
     };
 
-    const API_BASE = process.env.NEXT_PUBLIC_API_URL?.trim() || "http://localhost:8080";
+    const API_BASE = process.env.NEXT_PUBLIC_API_URL?.trim() || "http://app.local/api";
     const inputClass =
         "w-full border border-slate-300 rounded-md px-3 py-2 text-gray-700 placeholder:text-gray-400 focus:text-black focus:border-black focus:outline-none focus:ring-2 focus:ring-[#013c59]/30";
 

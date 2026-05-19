@@ -14,7 +14,7 @@ type RitType = {
     dockIds: number[];
 };
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL?.trim() || "http://localhost:8080";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL?.trim() || "http://app.local/api";
 const inputClass = "w-full border border-slate-300 rounded-md px-3 py-2 text-slate-800 placeholder:text-slate-600 focus:text-slate-900 focus:border-black focus:outline-none focus:ring-2 focus:ring-[#013c59]/30";
 const updateSelectClass = "border border-slate-500 bg-white text-slate-800 rounded px-2 py-1 text-sm shrink-0 focus:outline-none focus:ring-2 focus:ring-[#013c59]/40";
 
