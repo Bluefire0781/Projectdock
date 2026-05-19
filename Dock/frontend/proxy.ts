@@ -9,6 +9,9 @@ const routeRoleMap: Record<string, AppRole> = {
     "/warehouse": "warehouse",
 };
 
+const API_BASE =
+    process.env.NEXT_PUBLIC_API_URL?.trim() || "http://localhost:8080";
+
 function requiredRoleForPath(pathname: string): AppRole | null {
     for (const prefix of Object.keys(routeRoleMap)) {
         if (pathname.startsWith(prefix)) return routeRoleMap[prefix];
@@ -30,7 +33,7 @@ export async function proxy(request: NextRequest) {
         // Forward ALL incoming cookies, not only token
         const incomingCookieHeader = request.headers.get("cookie") ?? "";
 
-        const res = await fetch("http://localhost:8080/me", {
+        const res = await fetch(`${API_BASE}/me`, {
             method: "GET",
             headers: {
                 cookie: incomingCookieHeader,

@@ -74,7 +74,7 @@ export default function RitPage() {
     const [submitting, setSubmitting] = useState(false);
 
     // --- API base ---
-    const API_BASE = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") || "http://localhost:8080";
+    const API_BASE = process.env.NEXT_PUBLIC_API_URL?.trim() || "http://localhost:8080";
 
     // --- Fetchers ---
     useEffect(() => {

@@ -4,6 +4,7 @@ use axum::{
     http::{HeaderValue, Method, header},
     routing::{delete, get, patch, post},
 };
+use std::env;
 use tower_http::cors::CorsLayer;
 
 pub mod account_api;
@@ -14,8 +15,9 @@ pub mod rittype_api;
 pub mod toegestanedock_api;
 
 pub fn router() -> Router<AppState> {
+    let frontend_url = env::var("FRONTEND_URL").expect("FRONTEND_URL must be set");
     let cors = CorsLayer::new()
-        .allow_origin("http://localhost:3000".parse::<HeaderValue>().unwrap())
+        .allow_origin(frontend_url.parse::<HeaderValue>().unwrap())
         .allow_credentials(true)
         .allow_methods([
             Method::GET,
