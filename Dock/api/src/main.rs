@@ -24,6 +24,9 @@ async fn main() {
     //migration up
     let _ = migration::Migrator::up(&db, None).await;
 
+    //seed admin account if not exist
+    crate::service::account_service::seed_admin(&db).await;
+
     // jwt secret
     let jwt_secret = std::env::var("JWT_SECRET").expect("JWT_SECRET must be set");
 

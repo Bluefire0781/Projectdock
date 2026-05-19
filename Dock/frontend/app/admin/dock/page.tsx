@@ -93,7 +93,7 @@ export default function DockRitTypeManagerPage() {
             setAssignments(assignmentsData);
 
             // Rebuild ritTypes with assignments mapping:
-            const ritTypesMapped = ritTypesApiData.map((r: RitTypeApi) => ({
+            const ritTypesMapped: RitType[] = ritTypesApiData.map((r: RitTypeApi) => ({
                 id: String(r.id),
                 rittypeid: r.rittypeid,
                 description: r.description,

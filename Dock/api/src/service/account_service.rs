@@ -111,3 +111,33 @@ pub async fn update_account(
 
     active_model.update(db).await
 }
+
+pub async fn seed_admin(db: &DatabaseConnection) -> Result<(), sea_orm::DbErr> {
+    // Check if admin already exists
+    let exists = account::Entity::find()
+        .filter(account::Column::Username.eq("admin"))
+        .one(db)
+        .await?
+        .is_some();
+
+    if exists {
+        println!("Admin account already exists, skipping seed.");
+        return Ok(());
+    }
+
+    let hashed_password = hash_password("bierislekker")
+        .await
+        .map_err(|e| sea_orm::DbErr::Custom(e.to_string()))?;
+
+    let new_account = account::ActiveModel {
+        username: Set("admin".to_owned()),
+        password: Set(hashed_password),
+        email: Set(Some("admin@email.com".to_owned())),
+        role: Set("admin".to_owned()),
+        ..Default::default()
+    };
+
+    new_account.insert(db).await?;
+    println!("Admin account seeded.");
+    Ok(())
+}
