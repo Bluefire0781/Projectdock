@@ -29,6 +29,7 @@ pub fn router() -> Router<AppState> {
         .allow_headers([header::CONTENT_TYPE, header::AUTHORIZATION]);
 
     Router::new()
+        .route("/api/add", get(add))
         .route("/api/login", post(account_api::log_in))
         .route("/api/me", get(account_api::me))
         .route("/api/logout", post(account_api::logout))
@@ -81,17 +82,18 @@ pub fn router() -> Router<AppState> {
         .layer(cors)
 }
 
-// async fn add() -> String {
-//     (4 + 4).to_string()
-// }
-//
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-//
-//     #[tokio::test]
-//     async fn test_add() {
-//         let result = add().await;
-//         assert_eq!(result, "8");
-//     }
-// }
+fn fibonacci(n: u32) -> u64 {
+    let mut a = 0;
+    let mut b = 1;
+    for _ in 0..n {
+        let tmp = a;
+        a = b;
+        b = tmp + b;
+    }
+    a
+}
+
+async fn add() -> String {
+    let result = fibonacci(20); // Adjust this number
+    result.to_string()
+}
