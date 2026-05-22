@@ -1,5 +1,6 @@
 pub mod account;
 pub mod afspraak;
+pub mod dashboard;
 pub mod dock;
 pub mod jwt;
 pub mod leverancier;

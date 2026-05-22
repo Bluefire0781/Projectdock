@@ -1,4 +1,5 @@
 pub mod account_service;
+pub mod dashboard_service;
 pub mod dock_service;
 pub mod hasher_service;
 pub mod jwt_service;

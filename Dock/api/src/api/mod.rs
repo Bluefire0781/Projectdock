@@ -8,6 +8,7 @@ use std::env;
 use tower_http::cors::CorsLayer;
 
 pub mod account_api;
+pub mod dashboard_api;
 pub mod dock_api;
 pub mod leverancier_api;
 pub mod rit_api;
@@ -77,7 +78,11 @@ pub fn router() -> Router<AppState> {
                 .route("/api/rits", post(rit_api::create_rit))
                 .route("/api/rits", get(rit_api::find_all))
                 .route("/api/rits/{id}", patch(rit_api::update_rit))
-                .route("/api/rits/{id}", delete(rit_api::delete_rit)),
+                .route("/api/rits/{id}", delete(rit_api::delete_rit))
+                .route(
+                    "/api/Rittypechart",
+                    get(dashboard_api::rittype_piechart_handler),
+                ),
         )
         .layer(cors)
 }

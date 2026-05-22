@@ -21,8 +21,6 @@ async fn setup_test_db() -> DatabaseConnection {
     dotenvy::dotenv().ok();
 
     let url = std::env::var("TESTDB_URL").expect("TESTDB_URL must be set for integration tests");
-
-    // Guard rail so you don’t accidentally run against prod/dev data
     assert!(
         url.contains("test") || url.contains("_test"),
         "Refusing to run tests: DATABASE_URL does not look like a test database: {url}"
@@ -37,10 +35,6 @@ async fn setup_test_db() -> DatabaseConnection {
     db
 }
 
-/// Cleanup between tests so they’re repeatable.
-/// Replace table names with YOUR tables.
-/// If you don't know the exact names, paste your migration that creates accounts.
-
 async fn reset_db(db: &DatabaseConnection) {
     let sql = r#"
         TRUNCATE TABLE account RESTART IDENTITY CASCADE;
@@ -49,12 +43,6 @@ async fn reset_db(db: &DatabaseConnection) {
     db.execute_unprepared(sql).await.expect("truncate");
 }
 
-/// Insert a user row that `account_service::log_in` will authenticate.
-/// You MUST implement this to match your schema + hashing.
-///
-/// I can write this precisely if you paste:
-/// - account_service::log_in
-/// - your SeaORM Account entity (models)
 async fn seed_user(db: &DatabaseConnection, username: &str, password: &str) {
     // 1) hash password (argon2)
     let salt = SaltString::generate(&mut OsRng);
@@ -78,7 +66,6 @@ async fn seed_user(db: &DatabaseConnection, username: &str, password: &str) {
 
 #[tokio::test]
 async fn login_success_sets_cookie_and_returns_token() {
-    // Arrange
     let db = setup_test_db().await;
     reset_db(&db).await;
     seed_user(&db, "alice", "password123").await;
@@ -90,10 +77,9 @@ async fn login_success_sets_cookie_and_returns_token() {
 
     let router = app::api::router().with_state(state);
 
-    // Act
     let req = Request::builder()
         .method("POST")
-        .uri("/login")
+        .uri("/api/login")
         .header(header::CONTENT_TYPE, "application/json")
         .body(Body::from(
             r#"{"username":"alice","password":"password123"}"#,
@@ -102,7 +88,6 @@ async fn login_success_sets_cookie_and_returns_token() {
 
     let res = router.oneshot(req).await.unwrap();
 
-    // Assert
     assert_eq!(res.status(), StatusCode::OK);
 
     let set_cookie = res
@@ -130,7 +115,6 @@ async fn login_success_sets_cookie_and_returns_token() {
 
 #[tokio::test]
 async fn login_wrong_password_returns_401() {
-    // Arrange
     let db = setup_test_db().await;
 
     reset_db(&db).await;
@@ -144,16 +128,14 @@ async fn login_wrong_password_returns_401() {
 
     let router = app::api::router().with_state(state);
 
-    // Act
     let req = Request::builder()
         .method("POST")
-        .uri("/login")
+        .uri("/api/login")
         .header(header::CONTENT_TYPE, "application/json")
         .body(Body::from(r#"{"username":"alice","password":"wrong"}"#))
         .unwrap();
 
     let res = router.oneshot(req).await.unwrap();
 
-    // Assert
     assert_eq!(res.status(), StatusCode::UNAUTHORIZED);
 }
