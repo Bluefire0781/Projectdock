@@ -13,6 +13,7 @@ pub mod dock_api;
 pub mod leverancier_api;
 pub mod rit_api;
 pub mod rittype_api;
+pub mod sse_api;
 pub mod toegestanedock_api;
 
 pub fn router() -> Router<AppState> {
@@ -30,6 +31,7 @@ pub fn router() -> Router<AppState> {
         .allow_headers([header::CONTENT_TYPE, header::AUTHORIZATION]);
 
     Router::new()
+        .route("/api/sse", get(sse_api::sse_handler))
         .route("/api/add", get(add))
         .route("/api/login", post(account_api::log_in))
         .route("/api/me", get(account_api::me))
