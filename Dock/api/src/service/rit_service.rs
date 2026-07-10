@@ -1,4 +1,4 @@
-use crate::models::{afspraak, rit};
+use crate::models::{afspraak, leverancier, rit};
 use chrono::NaiveDate;
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, DatabaseConnection, DeleteResult, EntityTrait, QueryFilter, Set,
@@ -35,6 +35,26 @@ pub async fn find_all(
         .await
 }
 
+// FIND ALL for a specific account (via its leverancier(s)) — used for non-admin "user" role
+pub async fn find_all_for_account(
+    db: &DatabaseConnection,
+    account_id: i32,
+) -> Result<Vec<(rit::Model, Vec<afspraak::Model>)>, sea_orm::DbErr> {
+    let leverancier_ids: Vec<i32> = leverancier::Entity::find()
+        .filter(leverancier::Column::AccountId.eq(account_id))
+        .all(db)
+        .await?
+        .into_iter()
+        .map(|l| l.id)
+        .collect();
+
+    rit::Entity::find()
+        .filter(rit::Column::LeverancierNmr.is_in(leverancier_ids))
+        .find_with_related(afspraak::Entity)
+        .all(db)
+        .await
+}
+
 // FIND BY ONE (by id)
 pub async fn find_by_one(
     db: &DatabaseConnection,
@@ -42,6 +62,16 @@ pub async fn find_by_one(
 ) -> Result<Option<rit::Model>, sea_orm::DbErr> {
     rit::Entity::find()
         .filter(rit::Column::Id.eq(id))
+        .one(db)
+        .await
+}
+
+// Fetch the leverancier a rit belongs to — used to check a "user" account owns this rit
+pub async fn get_leverancier_for_rit(
+    db: &DatabaseConnection,
+    rit: &rit::Model,
+) -> Result<Option<leverancier::Model>, sea_orm::DbErr> {
+    leverancier::Entity::find_by_id(rit.leverancier_nmr)
         .one(db)
         .await
 }
@@ -90,3 +120,4 @@ pub async fn delete_rit(db: &DatabaseConnection, id: i32) -> Result<DeleteResult
 
     Ok(res)
 }
+

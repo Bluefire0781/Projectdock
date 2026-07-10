@@ -1,8 +1,6 @@
 use sea_orm_migration::{prelude::*, schema::*};
-
 #[derive(DeriveMigrationName)]
 pub struct Migration;
-
 #[async_trait::async_trait]
 impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
@@ -11,7 +9,7 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table("afspraak")
                     .if_not_exists()
-                    .col(integer("afspraak_id").not_null().primary_key())
+                    .col(pk_auto("afspraak_id"))
                     .col(integer("rit_nmr").not_null().unique_key())
                     .col(integer("dock_nmr").not_null())
                     .col(date_time("starttijd").not_null())
@@ -35,10 +33,10 @@ impl MigrationTrait for Migration {
             )
             .await
     }
-
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
             .drop_table(Table::drop().table("afspraak").to_owned())
             .await
     }
 }
+

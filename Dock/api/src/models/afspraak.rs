@@ -1,5 +1,33 @@
 use sea_orm::entity::prelude::*;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
+
+#[derive(Deserialize)]
+pub struct CreateAfspraak {
+    pub rit_nmr: i32,
+    pub dock_nmr: i32,
+    pub starttijd: DateTime,
+    pub eindtijd: DateTime,
+    pub landing_type: String,
+}
+
+#[derive(Deserialize)]
+pub struct UpdateAfspraak {
+    pub rit_nmr: Option<i32>,
+    pub dock_nmr: Option<i32>,
+    pub starttijd: Option<DateTime>,
+    pub eindtijd: Option<DateTime>,
+    pub landing_type: Option<String>,
+}
+
+#[derive(Serialize)]
+pub struct AfspraakResponse {
+    pub afspraak_id: i32,
+    pub rit_nmr: i32,
+    pub dock_nmr: i32,
+    pub starttijd: DateTime,
+    pub eindtijd: DateTime,
+    pub landing_type: String,
+}
 
 #[sea_orm::model]
 #[derive(Serialize, Debug, Clone, PartialEq, Eq, DeriveEntityModel, Default)]
@@ -20,3 +48,4 @@ pub struct Model {
 }
 
 impl ActiveModelBehavior for ActiveModel {}
+

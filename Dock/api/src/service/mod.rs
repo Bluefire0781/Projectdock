@@ -1,4 +1,6 @@
 pub mod account_service;
+pub mod afspraak_service;
+pub mod beschikbaarheid_service;
 pub mod dashboard_service;
 pub mod dock_service;
 pub mod hasher_service;

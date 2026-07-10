@@ -8,8 +8,11 @@ use std::env;
 use tower_http::cors::CorsLayer;
 
 pub mod account_api;
+pub mod afspraak_api;
+pub mod beschikbaarheid_api;
 pub mod dashboard_api;
 pub mod dock_api;
+pub mod inplannen_api;
 pub mod leverancier_api;
 pub mod rit_api;
 pub mod rittype_api;
@@ -29,7 +32,6 @@ pub fn router() -> Router<AppState> {
             Method::OPTIONS,
         ])
         .allow_headers([header::CONTENT_TYPE, header::AUTHORIZATION]);
-
     Router::new()
         .route("/api/sse", get(sse_api::sse_handler))
         .route("/api/add", get(add))
@@ -81,10 +83,23 @@ pub fn router() -> Router<AppState> {
                 .route("/api/rits", get(rit_api::find_all))
                 .route("/api/rits/{id}", patch(rit_api::update_rit))
                 .route("/api/rits/{id}", delete(rit_api::delete_rit))
+                .route("/api/rits/{id}", get(rit_api::find_rit))
+                .route(
+                    "/api/rits/{id}/beschikbaarheid",
+                    get(beschikbaarheid_api::get_beschikbaarheid),
+                )
+                .route("/api/rits/{id}/inplannen", post(inplannen_api::plan_rit_in))
                 .route(
                     "/api/Rittypechart",
                     get(dashboard_api::rittype_piechart_handler),
                 ),
+        )
+        .merge(
+            Router::new()
+                .route("/api/afspraken", post(afspraak_api::create_afspraak))
+                .route("/api/afspraken", get(afspraak_api::find_all))
+                .route("/api/afspraken/{id}", patch(afspraak_api::update_afspraak))
+                .route("/api/afspraken/{id}", delete(afspraak_api::delete_afspraak)),
         )
         .layer(cors)
 }

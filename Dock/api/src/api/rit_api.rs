@@ -41,16 +41,22 @@ pub async fn find_all(
     State(state): State<AppState>,
     headers: HeaderMap,
 ) -> Result<(StatusCode, Json<Vec<RitResponsewithaf>>), StatusCode> {
-    jwt_service::require_role(&headers, &state.jwt_secret, &["admin"][..])?;
+    let claims = jwt_service::require_role(&headers, &state.jwt_secret, &["admin", "user"][..])?;
 
-    let rows = rit_service::find_all(&state.db)
-        .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let rows = if claims.role == "admin" {
+        rit_service::find_all(&state.db)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+    } else {
+        rit_service::find_all_for_account(&state.db, claims.sub)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+    };
 
     let response: Vec<RitResponsewithaf> = rows
         .into_iter()
         .map(|(r, afspraken)| {
-            let afspraak_starttijd = afspraken.get(0).map(|a| a.starttijd.clone()); // clone because it's a String
+            let afspraak = afspraken.get(0);
 
             RitResponsewithaf {
                 id: r.id,
@@ -59,10 +65,47 @@ pub async fn find_all(
                 pellet_tot: r.pellet_tot,
                 rit_type: r.rit_type,
                 datum: r.datum,
-                afspraak_starttijd,
+                afspraak_starttijd: afspraak.map(|a| a.starttijd),
+                afspraak_eindtijd: afspraak.map(|a| a.eindtijd),
+                dock_nmr: afspraak.map(|a| a.dock_nmr),
             }
         })
         .collect();
+
+    Ok((StatusCode::OK, Json(response)))
+}
+
+pub async fn find_rit(
+    State(state): State<AppState>,
+    Path(id): Path<i32>,
+    headers: HeaderMap,
+) -> Result<(StatusCode, Json<RitResponse>), StatusCode> {
+    let claims = jwt_service::require_role(&headers, &state.jwt_secret, &["admin", "user"][..])?;
+
+    let rit = rit_service::find_by_one(&state.db, id)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+        .ok_or(StatusCode::NOT_FOUND)?;
+
+    if claims.role != "admin" {
+        let leverancier_row = rit_service::get_leverancier_for_rit(&state.db, &rit)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+            .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
+
+        if leverancier_row.account_id != claims.sub {
+            return Err(StatusCode::FORBIDDEN);
+        }
+    }
+
+    let response = RitResponse {
+        id: rit.id,
+        rit_id: rit.rit_id,
+        leverancier_nmr: rit.leverancier_nmr,
+        pellet_tot: rit.pellet_tot,
+        rit_type: rit.rit_type,
+        datum: rit.datum,
+    };
 
     Ok((StatusCode::OK, Json(response)))
 }
@@ -130,3 +173,4 @@ pub async fn delete_rit(
         }),
     ))
 }
+

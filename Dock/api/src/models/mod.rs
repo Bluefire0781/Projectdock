@@ -1,7 +1,9 @@
 pub mod account;
 pub mod afspraak;
+pub mod beschikbaarheid;
 pub mod dashboard;
 pub mod dock;
+pub mod inplannen;
 pub mod jwt;
 pub mod leverancier;
 pub mod rit;

@@ -39,6 +39,8 @@ pub struct RitResponsewithaf {
     pub rit_type: i32,
     pub datum: NaiveDate,
     pub afspraak_starttijd: Option<DateTime>,
+    pub afspraak_eindtijd: Option<DateTime>,
+    pub dock_nmr: Option<i32>,
 }
 
 #[sea_orm::model]
@@ -62,3 +64,4 @@ pub struct Model {
 }
 
 impl ActiveModelBehavior for ActiveModel {}
+
